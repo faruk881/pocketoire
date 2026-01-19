@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\PasswordController;
@@ -33,6 +34,8 @@ Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,
 // Storefront routes
 Route::middleware('auth:sanctum')->group(function(){
     Route::post('/storefront/create',[StorefrontController::class,'createStorefront']);
+    Route::post('/storefront/checkurl',[StorefrontController::class,'storefrontUrlCheck']); //for ajax checking.
+    Route::post('/storefront/create-album',[AlbumController::class,'createAlbum']);
 });
 
 

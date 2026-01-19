@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateStorefrontRequest;
+use App\Http\Requests\StorefrontUrlCheckRequest;
 use App\Models\Storefront;
 use App\Models\User;
 use App\Services\StripeService;
@@ -113,5 +114,20 @@ class StorefrontController extends Controller
                 ['exception' => $e->getMessage()]
             );
         }
+    } // End of createStorefront
+
+    public function storefrontUrlCheck(StorefrontUrlCheckRequest $request) {
+        $data = $request->validated();
+        $slug = Str::slug($data['storeurl']);
+        $slug_is_exist = Storefront::where('slug',$slug)->first();
+        if($slug_is_exist) {
+            return apiError('The url already taken');
+        } else {
+            return apiSuccess('You can use this url');
+        }
+
+
     }
+
+
 }
