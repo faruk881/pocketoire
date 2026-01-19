@@ -5,8 +5,10 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SocialAuthController;
+use App\Http\Controllers\StorefrontController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Sanctum;
 
 // Default Route
 Route::get('/user', function (Request $request) {
@@ -23,9 +25,15 @@ Route::post('/auth/google',[SocialAuthController::class,'googleAuth']);
 Route::post('/auth/forgot-password',[PasswordController::class,'forgotPassword']);
 Route::post('/auth/forgot-password/verify-otp',[PasswordController::class,'verifyPasswordResetOtp']);  
 
-// Mail verify route
+// Mail verify routes
 Route::post('/auth/email/verify-otp',[EmailVerificationController::class,'verifyOtp']);
 Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,'resendOtp']);
+
+
+// Storefront routes
+Route::middleware('auth:sanctum')->group(function(){
+    Route::post('/storefront/create',[StorefrontController::class,'createStorefront']);
+});
 
 
 

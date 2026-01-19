@@ -15,12 +15,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete()->unique();
             $table->string('name');
+            $table->string('slug')->unique();
             $table->enum('status', ['pending', 'approved', 'rejected', 'banned'])->default('pending');
-            $table->string('status_reason')->nullable(); // If storefront is banned or rejected the message will store here
+            $table->text('status_reason')->nullable(); // If storefront is banned or rejected the message will store here
             $table->text('bio')->nullable();
-
-            // Auto generate or user can set custom url for storefronts
-            $table->string('url')->unique();
+            
             $table->string('instagram_link')->nullable();
             $table->string('tiktok_link')->nullable();
 
@@ -29,6 +28,9 @@ return new class extends Migration
             $table->timestamp('moderated_at')->nullable();
 
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index('status');
         });
     }
 
