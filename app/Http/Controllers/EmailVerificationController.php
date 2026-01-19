@@ -14,15 +14,26 @@ class EmailVerificationController extends Controller
 {
     public function verifyOtp(ConfirmMailRequest $request) {
         try{
+
+            // Get the user
             $user = User::where('email', $request->email)->first();
+
+            // Check if user exists.
             if(!$user) {
                 return apiError('Invalid email or otp');
             }
 
+            // Check if user created using google id.
+            if($user->google_id){
+                return apiError('User created using google. Please sign in using google.',403);
+            }
+
+            // Check if usermail already verified.
             if($user->email_verified_at){
                 return apiError('The mail is already verified');
             }
 
+            // Check if the OTP Expires.
             if (
                 !$user || 
                 !$user->otp || 
@@ -31,14 +42,15 @@ class EmailVerificationController extends Controller
                 return apiError('Invalid or expired OTP, Please request a new one.');
             }   
 
+            // Update the otp status.
             $user->update([
                 'otp' => null,
                 'otp_expires_at' => null,
                 'email_verified_at' => Carbon::now(),
             ]);
 
-            return apiSuccess('email successfully verified, now you can log in',
-            new AuthUserResource($user));
+            // Return success message.
+            return apiSuccess('email successfully verified, now you can log in', new AuthUserResource($user));
         } catch(\Throwable $e) {
                 return apiError(
                 app()->isLocal() ? $e->getMessage() : 'Something went wrong',
@@ -49,13 +61,21 @@ class EmailVerificationController extends Controller
 
     public function resendOtp(OtpResentRequest $request, OtpService $otpService){
         try {
+
+            // Get the user.
             $user = User::where('email', $request->email)->first();
 
             // Generic error (prevents enumeration)
             if (! $user) {
                 return apiError('Invalid credentials.', 401);
             }
+            
+            // Check if user is created using google id.
+            if($user->google_id){
+                return apiError('User created using google. Please sign in using google.',403);
+            }
 
+            // Check if mail is already verified.
             if ($user->email_verified_at) {
                 return apiError(
                     'This email address has already been verified.',
@@ -66,10 +86,6 @@ class EmailVerificationController extends Controller
             // Account status check
             if ($user->status !== 'active') {
                 return apiError('Your account is not active.', 403);
-            }
-
-            if($user->google_id){
-                return apiError('User created using google. Please sign in using google.',403);
             }
             
             // Email not verified
