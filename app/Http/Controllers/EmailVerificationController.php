@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Hash;
 
 class EmailVerificationController extends Controller
 {
-    public function confirmEmail(ConfirmMailRequest $request) {
+    public function verifyOtp(ConfirmMailRequest $request) {
         try{
             $user = User::where('email', $request->email)->first();
             if(!$user) {
@@ -47,7 +47,7 @@ class EmailVerificationController extends Controller
         }
     }
 
-    public function mailVerifyResendOtp(OtpResentRequest $request, OtpService $otpService){
+    public function resendOtp(OtpResentRequest $request, OtpService $otpService){
         try {
             $user = User::where('email', $request->email)->first();
 
