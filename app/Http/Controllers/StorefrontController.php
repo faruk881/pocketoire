@@ -126,7 +126,6 @@ class StorefrontController extends Controller
             return apiSuccess('You can use this url');
         }
 
-
     }
 
 

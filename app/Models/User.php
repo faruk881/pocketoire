@@ -62,7 +62,7 @@ class User extends Authenticatable
         ];
     }
 
-    public function storefronts(){
+    public function storefront(){
         return $this->hasOne(Storefront::class);
     }
 }

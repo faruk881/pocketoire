@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RegisterController;
@@ -24,7 +25,8 @@ Route::post('/auth/google',[SocialAuthController::class,'googleAuth']);
 
 // Password reset routes
 Route::post('/auth/forgot-password',[PasswordController::class,'forgotPassword']);
-Route::post('/auth/forgot-password/verify-otp',[PasswordController::class,'verifyPasswordResetOtp']);  
+Route::post('/auth/forgot-password/verify-otp',[PasswordController::class,'verifyPasswordResetOtp']); 
+Route::put('/profile/password',[PasswordController::class,'changePassword'])->middleware(['auth:sanctum', 'canChangePassword']);
 
 // Mail verify routes
 Route::post('/auth/email/verify-otp',[EmailVerificationController::class,'verifyOtp']);
@@ -35,9 +37,17 @@ Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,
 Route::middleware('auth:sanctum')->group(function(){
     Route::post('/storefront/create',[StorefrontController::class,'createStorefront']);
     Route::post('/storefront/checkurl',[StorefrontController::class,'storefrontUrlCheck']); //for ajax checking.
-    Route::post('/storefront/create-album',[AlbumController::class,'createAlbum']);
+    
 });
 
+// Creator Routes
+Route::middleware(['auth:sanctum','creator'])->group(function(){
+    Route::post('/storefront/create-album',[AlbumController::class,'createAlbum'])->middleware('storefrontActive');
+    Route::get('/creator/profile', [CreatorProfileController::class, 'show'])->name('creator.profile.show');
+    route::patch('/creator/profile',[CreatorProfileController::class,'update'])->name('creator.profile.update');
+});
+
+// Buyer Routes
 
 
 

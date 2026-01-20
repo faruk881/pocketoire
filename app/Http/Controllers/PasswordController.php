@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\PasswordResetRequest;
 use App\Models\User;
@@ -79,6 +80,28 @@ class PasswordController extends Controller
 
             return apiSuccess('Password reset successful');
         } catch(\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+    }
+
+    public function changePassword(ChangePasswordRequest $request){
+        try{
+            $user = auth()->user();
+
+            // Check current password
+            if(!Hash::check($request->current_password, $user->password)){
+                return apiError('Current password is incorrect',422);
+            }
+
+            // Update to new password
+            $user->password = $request->new_password;
+            $user->save();
+            $session = request()->user()->currentAccessToken();
+            // Revoke current token
+            $session->delete();
+
+            return apiSuccess('Password changed successfully');
+        } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
     }

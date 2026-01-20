@@ -13,7 +13,7 @@ class AlbumController extends Controller
 
         try {
             $data = $request->validated();
-
+            
             $baseSlug = Str::slug($data['name']);
             $slug = $baseSlug;
             $counter = 1;
@@ -31,12 +31,12 @@ class AlbumController extends Controller
             return apiSuccess('Album Created', $album, 201);
 
         } catch (\Throwable $e) {
-        return apiError(
-            'Failed to create album',
-            500,
-            ['exception' => $e->getMessage()]
-        );
-    }
+            return apiError(
+                'Failed to create album',
+                500,
+                ['exception' => $e->getMessage()]
+            );
+        }
             
     }
 }
