@@ -1,21 +1,19 @@
 <?php
 
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\HomePage\ContactMessageController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Laravel\Sanctum\Sanctum;
 
-// Default Route
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Homepage Routes
+Route::post('/contact-messages',[ContactMessageController::class,'store']);
 
 // Auth routes
 Route::post('/auth/register',[RegisterController::class,'register']);
@@ -47,7 +45,12 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     route::patch('/creator/profile',[CreatorProfileController::class,'update'])->name('creator.profile.update');
 });
 
-// Buyer Routes
+// Admin Routes
+Route::middleware(['auth:sanctum','admin'])->group(function(){
+   Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
+   Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
+   Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
+});
 
 
 

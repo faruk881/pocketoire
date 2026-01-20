@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\Admin;
 use App\Http\Middleware\Creator;
 use App\Http\Middleware\StorefrontActive;
 use Illuminate\Foundation\Application;
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'creator' => Creator::class,
+            'admin' => Admin::class,
             'storefrontActive' => StorefrontActive::class,
             'canChangePassword' => \App\Http\Middleware\CanChangePassword::class,
         ]);
