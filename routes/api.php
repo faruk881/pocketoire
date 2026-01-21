@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CreatorProfileController;
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 
 // Homepage Routes
 Route::post('/contact-messages',[ContactMessageController::class,'store']);
+Route::get('/faq',[SettingsController::class,'getFaq'])->name('faq.get');
+Route::get('/terms',[SettingsController::class,'getTerms'])->name('terms.get');
+Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->name('privacy-policy.get');
 
 // Auth routes
 Route::post('/auth/register',[RegisterController::class,'register']);
@@ -50,6 +54,7 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
    Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
    Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
    Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
+   Route::get('/admin/creators',[UsersController::class,'getCreators'])->name('admin.creators.list');
 });
 
 

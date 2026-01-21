@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Faq;
+use App\Models\PrivacyPolicy;
 use App\Models\Term;
 use Illuminate\Http\Request;
 
@@ -19,6 +20,16 @@ class SettingsController extends Controller
             Term::updateOrCreate($terms);
 
             return apiSuccess('Terms of Service updated successfully.');
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage()); 
+        }
+    }
+
+    public function getTerms(Request $request) {
+        try{
+            $terms = Term::first(['id','content']);
+            
+            return apiSuccess('Terms retrieved successfully.', $terms);
         } catch (\Throwable $e) {
             return apiError($e->getMessage()); 
         }
@@ -40,6 +51,16 @@ class SettingsController extends Controller
         }
     }
 
+    public function getFaq(Request $request) {
+        try{
+            $faqs = Faq::get(['id','question','answer']);
+            
+            return apiSuccess('FAQs retrieved successfully.', $faqs);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage()); 
+        }
+    }
+
     public function storePrivacyPolicy(Request $request) {
         try{
             $privacyPolicy = $request->validate([
@@ -47,9 +68,19 @@ class SettingsController extends Controller
             ]);
             $privacyPolicy['updated_by'] = auth()->id();
 
-            \App\Models\PrivacyPolicy::updateOrCreate($privacyPolicy);
+            PrivacyPolicy::updateOrCreate($privacyPolicy);
 
             return apiSuccess('Privacy Policy updated successfully.');
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage()); 
+        }
+    }
+
+    public function getPrivacyPolicy() {
+        try{
+            $privacyPolicy = PrivacyPolicy::first(['id','content']);
+            
+            return apiSuccess('Privacy Policy retrieved successfully.', $privacyPolicy);
         } catch (\Throwable $e) {
             return apiError($e->getMessage()); 
         }
