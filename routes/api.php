@@ -51,10 +51,20 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
 
 // Admin Routes
 Route::middleware(['auth:sanctum','admin'])->group(function(){
+
+    // Settings Management
    Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
    Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
    Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
-   Route::get('/admin/creators',[UsersController::class,'getCreators'])->name('admin.creators.list');
+
+    // Creator Management
+   Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
+   Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
+   Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
+
+   // Buyer Management
+   Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
+   Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');
 });
 
 
