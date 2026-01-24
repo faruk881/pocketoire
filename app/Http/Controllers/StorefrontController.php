@@ -4,17 +4,23 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateStorefrontRequest;
 use App\Http\Requests\StorefrontUrlCheckRequest;
+use App\Models\Product;
 use App\Models\Storefront;
-use App\Models\User;
 use App\Services\StripeService;
-use Illuminate\Auth\Events\Validated;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Stripe\SetupIntent;
 
 class StorefrontController extends Controller
-{
+{   
+    public function getStorefronts() {
+        $perPage = request()->get('per_page', 10);
+        $storefronts = Storefront::select('name','bio')
+        ->withCount('products')     // fix this           
+        ->paginate($perPage);
+        return apiSuccess('Storefronts retrieved successfully.', $storefronts);
+    }
+
     public function createStorefront(CreateStorefrontRequest $request, StripeService $stripeService) {
 
         // Get current user.
@@ -117,15 +123,25 @@ class StorefrontController extends Controller
     } // End of createStorefront
 
     public function storefrontUrlCheck(StorefrontUrlCheckRequest $request) {
-        $data = $request->validated();
-        $slug = Str::slug($data['storeurl']);
-        $slug_is_exist = Storefront::where('slug',$slug)->first();
-        if($slug_is_exist) {
-            return apiError('The url already taken');
-        } else {
-            return apiSuccess('You can use this url');
+        try {
+            $data = $request->validated();
+            $slug = Str::slug($data['storeurl']);
+            $slug_is_exist = Storefront::where('slug',$slug)->first();
+            if($slug_is_exist) {
+                return apiError('The url already taken');
+            } else {
+                return apiSuccess('You can use this url');
+            }
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
         }
 
+    }
+
+    public function storefrontProducts() {
+        $perPage = request()->get('per_page', 10);
+        $products = Product::where('storefront_id', auth()->user()->storefront->id)->paginate($perPage);
+        return apiSuccess('Products retrieved successfully.', $products);
     }
 
 

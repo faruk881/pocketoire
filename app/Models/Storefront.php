@@ -15,4 +15,8 @@ class Storefront extends Model
     public function albums() {
         return $this->hasMany(Album::class);
     }
+
+    public function products() {
+        return $this->hasMany(Product::class);
+    }
 }

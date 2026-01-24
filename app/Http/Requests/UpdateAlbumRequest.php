@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Faker\Guesser\Name;
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateAlbumRequest extends FormRequest
+class UpdateAlbumRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

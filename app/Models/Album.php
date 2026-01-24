@@ -11,4 +11,7 @@ class Album extends Model
     public function storefront() {
         return $this->belongsTo(Storefront::class);
     }
+    public function products() {
+        return $this->hasMany(Product::class);
+    }
 }
