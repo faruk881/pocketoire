@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('album_id')->nullable()->constrained()->nullOnDelete();
             $table->string('title')->nullable();
             $table->text('description')->nullable();
-            $table->string('price')->nullable();
+            $table->decimal('price', 10, 2)->nullable();
             $table->enum('currency', ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK', 'NZD'])->default('USD');
             $table->string('product_link');
             $table->string('vaitor_product_code')->nullable();

@@ -3,21 +3,67 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateStorefrontRequest;
+use App\Http\Requests\SearchProductRequest;
+use App\Http\Requests\SearchStorefrontRequest;
 use App\Http\Requests\StorefrontUrlCheckRequest;
+use App\Http\Requests\StoreProductRequest;
 use App\Models\Product;
 use App\Models\Storefront;
 use App\Services\StripeService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Stripe\SetupIntent;
 
 class StorefrontController extends Controller
 {   
-    public function getStorefronts() {
-        $perPage = request()->get('per_page', 10);
-        $storefronts = Storefront::select('name','bio')
-        ->withCount('products')     // fix this           
-        ->paginate($perPage);
+    public function getStorefronts(SearchStorefrontRequest $request) {
+        try {
+            $perPage = $request->get('per_page', 10);
+            $search  = $request->get('search');
+            $sort    = $request->get('sort'); // <--- Changed from $filter
+
+            $query = Storefront::select('id', 'user_id', 'name', 'bio')
+                ->withCount(['products as total_sold' => function ($q) {
+                    $q->whereIn('status', ['confirmed', 'pending_price']);
+                }])
+                // Count 2: Total Products (Listed)
+                ->withCount('products as total_products')
+                ->with('user:id,name');
+
+
+            // --- SEARCH (Filtering results) ---
+            $query->when($search, function ($q) use ($search) {
+                return $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'LIKE', "%{$search}%")
+                            ->orWhere('bio', 'LIKE', "%{$search}%");
+                });
+            });
+
+            // --- SORT (Reordering results) ---
+            $query->when($sort, function ($q) use ($sort) {
+                switch ($sort) {
+                    case 'popular':
+                        return $q->orderByDesc('total_sold');
+                    case 'newest':
+                        return $q->orderByDesc('created_at');
+                    case 'oldest':
+                        return $q->orderBy('created_at');
+                    case 'name_asc':
+                        return $q->orderBy('name', 'asc');
+                    case 'name_desc':
+                        return $q->orderBy('name', 'desc');
+                    default:
+                        return $q->orderByDesc('created_at'); // Default sort
+                }
+            });
+
+            $storefronts = $query->paginate($perPage);
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
         return apiSuccess('Storefronts retrieved successfully.', $storefronts);
     }
 
@@ -138,10 +184,132 @@ class StorefrontController extends Controller
 
     }
 
-    public function storefrontProducts() {
-        $perPage = request()->get('per_page', 10);
-        $products = Product::where('storefront_id', auth()->user()->storefront->id)->paginate($perPage);
-        return apiSuccess('Products retrieved successfully.', $products);
+    public function storefrontProfile(SearchProductRequest $request) {
+        try {
+            $user = auth()->user();
+
+            // 1. Safety Check: Ensure User has a Storefront
+            if (!$user->storefront) {
+                return apiError('You do not have a storefront yet.');
+            }
+
+            // 2. Get Input Parameters
+            $perPage  = $request->get('per_page', 10);
+            $search   = $request->get('search');
+            $sort     = $request->get('sort');
+            $minPrice = $request->get('min_price');
+            $maxPrice = $request->get('max_price');
+
+            // 3. Start Product Query
+            $query = Product::where('storefront_id', $user->storefront->id);
+
+            // --- FILTERING & SORTING LOGIC (Same as before) ---
+            $query->when($minPrice, function ($q) use ($minPrice) {
+                return $q->where('price', '>=', $minPrice);
+            });
+            $query->when($maxPrice, function ($q) use ($maxPrice) {
+                return $q->where('price', '<=', $maxPrice);
+            });
+            $query->when($search, function ($q) use ($search) {
+                return $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('title', 'LIKE', "%{$search}%")
+                             ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%");
+                });
+            });
+            $query->when($sort, function ($q) use ($sort) {
+                switch ($sort) {
+                    case 'price_low': return $q->orderBy('price', 'asc');
+                    case 'price_high': return $q->orderBy('price', 'desc');
+                    case 'title_asc': return $q->orderBy('title', 'asc');
+                    default: return $q->orderByDesc('created_at');
+                }
+            });
+
+            $products = $query->paginate($perPage);
+
+            // 4. Construct the Final Response
+            $data = [
+                'profile' => [
+                    'store_name' => $user->storefront->name,
+                    'bio'        => $user->storefront->bio,
+                    'profile_photo' => $user->profile_photo,
+                    'cover_photo' => $user->cover_photo,
+                    'store-name' => $user->storefront->name,
+                    'store-url'   => $user->storefront->slug,
+                    // Optional: 'avatar' => $user->avatar 
+                ],
+                'products' => $products
+            ];
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+        return apiSuccess('Storefront profile retrieved successfully.', $data);
+    }
+
+    public function storefrontProducts(SearchProductRequest $request) {
+        try {
+            // 1. Get Input Parameters
+            $perPage  = $request->get('per_page', 10);
+            $search   = $request->get('search');
+            $sort     = $request->get('sort');
+            $minPrice = $request->get('min_price');
+            $maxPrice = $request->get('max_price');
+            
+            // Optional: Filter by specific Storefront (e.g., viewing one seller's public page)
+            $storefrontId = $request->get('storefront_id'); 
+
+            // 2. Start Query: Search ALL products
+            // We use 'with' to fetch the Store and User info efficiently (Eager Loading)
+            $query = Product::with(['storefront:id,user_id,name','storefront.user:id,name']);
+
+            // --- FILTER BY SPECIFIC STORE (Optional) ---
+            $query->when($storefrontId, function ($q) use ($storefrontId) {
+                return $q->where('storefront_id', $storefrontId);
+            });
+
+            // --- FILTER BY PRICE ---
+            $query->when($minPrice, function ($q) use ($minPrice) {
+                return $q->where('price', '>=', $minPrice);
+            });
+            $query->when($maxPrice, function ($q) use ($maxPrice) {
+                return $q->where('price', '<=', $maxPrice);
+            });
+
+            // --- SEARCH (Title, Code, OR Store Name) ---
+            $query->when($search, function ($q) use ($search) {
+                return $q->where(function ($subQuery) use ($search) {
+                    $subQuery->where('title', 'LIKE', "%{$search}%")
+                             ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%")
+                             // Bonus: Search by Store Name too!
+                             ->orWhereHas('storefront', function($storeQ) use ($search) {
+                                 $storeQ->where('name', 'LIKE', "%{$search}%");
+                             });
+                });
+            });
+
+            // --- SORT ---
+            $query->when($sort, function ($q) use ($sort) {
+                switch ($sort) {
+                    case 'price_low':   return $q->orderBy('price', 'asc');
+                    case 'price_high':  return $q->orderBy('price', 'desc');
+                    case 'newest':      return $q->orderByDesc('created_at');
+                    case 'oldest':      return $q->orderBy('created_at');
+                    case 'title_asc':   return $q->orderBy('title', 'asc');
+                    case 'title_desc':  return $q->orderBy('title', 'desc');
+                    default:            return $q->orderByDesc('created_at');
+                }
+            });
+
+            // 3. Execute Pagination
+            $products = $query->paginate($perPage);
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+        return apiSuccess('Marketplace products retrieved successfully.', $products);
     }
 
 

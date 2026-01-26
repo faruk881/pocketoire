@@ -28,6 +28,8 @@ Route::get('/terms',[SettingsController::class,'getTerms'])->name('terms.get');
 Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->name('privacy-policy.get');
 Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
+Route::get('/storefront/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
+
 
 // Password reset routes
 Route::post('/auth/forgot-password',[PasswordController::class,'forgotPassword']);
@@ -43,7 +45,7 @@ Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,
 Route::middleware('auth:sanctum')->group(function(){
     Route::post('/storefront/create',[StorefrontController::class,'createStorefront']);
     Route::post('/storefront/checkurl',[StorefrontController::class,'storefrontUrlCheck']); //for ajax checking.
-    Route::get('/storefront/profile',[StorefrontController::class,'storefrontProducts']);
+    Route::get('/storefront/profile',[StorefrontController::class,'storefrontProfile']);
     
 });
 
