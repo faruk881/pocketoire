@@ -312,5 +312,35 @@ class StorefrontController extends Controller
         return apiSuccess('Marketplace products retrieved successfully.', $products);
     }
 
+    public function storefrontSingleProduct($id) {
+        try {
+            // 1. Find the product or fail (404)
+            // We use 'with' to fetch the context: Who is selling this?
+            $product = Product::with([
+                'storefront:id,user_id,name,bio',
+                'storefront.user:id,name,profile_photo,cover_photo',
+                
+                // 👇 FIX: Add 'product_images.' before the column names
+                'first_image:id,product_images.product_id,image,source' 
+            ])->find($id);
+
+            // 2. Custom Error if not found
+            if (!$product) {
+                return apiError('Product not found.', 404);
+            }
+
+            // Optional: You could load 'related products' here if you wanted
+            // $related = Product::where('storefront_id', $product->storefront_id)
+            //    ->where('id', '!=', $id)
+            //    ->limit(4)
+            //    ->get();
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+        return apiSuccess('Product details retrieved successfully.', $product);
+    }
+
 
 }

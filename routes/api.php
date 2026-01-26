@@ -29,6 +29,8 @@ Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->na
 Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
 Route::get('/storefront/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
+Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
+
 
 
 // Password reset routes

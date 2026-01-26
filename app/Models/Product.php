@@ -13,7 +13,13 @@ class Product extends Model
     }
 
 
-    public function productImages() {
+    public function first_image()
+    {
+        // Fetches the single oldest image (good for a main thumbnail)
+        return $this->hasOne(ProductImage::class)->oldestOfMany();
+    }
+    
+    public function product_images() {
         return $this->hasMany(ProductImage::class);
     }
 
