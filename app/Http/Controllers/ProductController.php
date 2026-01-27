@@ -4,9 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProductRequest;
 use App\Models\Product;
+use App\Models\ProductClick;
 use App\Models\ProductImage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cookie;
 
 class ProductController extends Controller
 {
@@ -264,6 +267,56 @@ class ProductController extends Controller
             'currency'     => $priceData['currency'] ?? 'USD',
             'image_url'    => $imageUrls,
         ]);
+    }
+
+    public function trackAndRedirect(Request $request, $id)
+    {
+        try {
+            // 1. Find Product (Fail if not exists to show 404)
+            $product = Product::findOrFail($id);
+
+            // 2. Identify Visitor
+            // Check if they have the cookie. If not, generate a new UUID.
+            $visitorId = $request->cookie('creator_visitor_id') ?? (string) Str::uuid();
+
+            // 3. Duplicate Check (The "24-Hour Rule")
+            // specific product + specific visitor + last 24 hours
+            $hasClickedRecently = ProductClick::where('product_id', $id)
+                ->where('visitor_id', $visitorId)
+                ->where('created_at', '>=', now()->subHours(24))
+                ->exists();
+
+            // 4. Record Click (Only if NOT a duplicate)
+            if (!$hasClickedRecently) {
+                ProductClick::create([
+                    'product_id' => $product->id,
+                    'user_id'    => auth()->id(), // Logs ID if user is logged into Web Session
+                    'visitor_id' => $visitorId,   // The consistent tracking ID
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->header('User-Agent'),
+                ]);
+            }
+
+            // 5. Create the Cookie Object
+            // Name: 'creator_visitor_id', Value: $visitorId, Duration: 1440 mins (24 Hours)
+            $cookie = cookie('creator_visitor_id', $visitorId, 1440);
+
+            // 6. Redirect & Attach Cookie
+            // We attach ->withCookie() to ensure it saves during the redirect
+            return redirect($product->product_link)->withCookie($cookie);
+
+        } catch (\Throwable $e) {
+            // SAFETY NET: If anything above fails (DB error, etc.), 
+            // still redirect the user so you don't lose the sale.
+            
+            // Optional: Log::error($e->getMessage()); 
+            
+            $product = Product::find($id);
+            if ($product) {
+                return redirect($product->product_link);
+            }
+            abort(404);
+        }
     }
 
 }

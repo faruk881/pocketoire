@@ -30,4 +30,9 @@ class Product extends Model
     public function storefront() {
         return $this->belongsTo(Storefront::class);
     }
+
+    public function clicks()
+    {
+        return $this->hasMany(ProductClick::class);
+    }
 }

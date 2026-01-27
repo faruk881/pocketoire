@@ -305,6 +305,13 @@ class StorefrontController extends Controller
             // 3. Execute Pagination
             $products = $query->paginate($perPage);
 
+            // We transform the collection to swap the database URL with our Tracking URL
+            $products->getCollection()->transform(function ($product) {
+                // Generates: http://yoursite.com/api/click/4
+                $product->product_link = route('product.track', ['id' => $product->id]);
+                return $product;
+            });
+
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
         }
