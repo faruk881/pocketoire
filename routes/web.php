@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,4 +8,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
+Route::get('/click/{id}', [ProductController::class, 'trackAndRedirect'])->name('product.track')->middleware('throttle:10,1');

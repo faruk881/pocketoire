@@ -29,11 +29,11 @@ Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->na
 Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
 Route::get('/storefront/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
-// Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
-// * This route is in the webroute.
+Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
 
-// Tracking Route (Must be GET so it works as a clickable link)
-Route::get('/click/{id}', [ProductController::class, 'trackAndRedirect'])->name('product.track')->middleware('throttle:10,1');
+
+// Tracking Route (Must be GET so it works as a clickable link)// * This route is in the webroute.
+// Route::get('/click/{id}', [ProductController::class, 'trackAndRedirect'])->name('product.track')->middleware('throttle:10,1');
 
 
 
