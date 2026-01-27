@@ -23,13 +23,13 @@ class StorefrontController extends Controller
             $search  = $request->get('search');
             $sort    = $request->get('sort'); // <--- Changed from $filter
 
-            $query = Storefront::select('id', 'user_id', 'name', 'bio')
+            $query = Storefront::select('id', 'user_id', 'name', 'bio',)
                 ->withCount(['products as total_sold' => function ($q) {
                     $q->whereIn('status', ['confirmed', 'pending_price']);
                 }])
                 // Count 2: Total Products (Listed)
                 ->withCount('products as total_products')
-                ->with('user:id,name');
+                ->with('user:id,name,profile_photo,cover_photo');
 
 
             // --- SEARCH (Filtering results) ---
@@ -188,58 +188,94 @@ class StorefrontController extends Controller
         try {
             $user = auth()->user();
 
-            // 1. Safety Check: Ensure User has a Storefront
+            // 1. Safety Check
             if (!$user->storefront) {
                 return apiError('You do not have a storefront yet.');
             }
 
             // 2. Get Input Parameters
+            // Use boolean() to correctly handle "true"/"1"/"on"
+            $groupByAlbum = $request->boolean('group_by_album'); 
+            
             $perPage  = $request->get('per_page', 10);
             $search   = $request->get('search');
             $sort     = $request->get('sort');
             $minPrice = $request->get('min_price');
             $maxPrice = $request->get('max_price');
 
-            // 3. Start Product Query
-            $query = Product::where('storefront_id', $user->storefront->id);
-
-            // --- FILTERING & SORTING LOGIC (Same as before) ---
-            $query->when($minPrice, function ($q) use ($minPrice) {
-                return $q->where('price', '>=', $minPrice);
-            });
-            $query->when($maxPrice, function ($q) use ($maxPrice) {
-                return $q->where('price', '<=', $maxPrice);
-            });
-            $query->when($search, function ($q) use ($search) {
-                return $q->where(function ($subQuery) use ($search) {
-                    $subQuery->where('title', 'LIKE', "%{$search}%")
-                             ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%");
-                });
-            });
-            $query->when($sort, function ($q) use ($sort) {
-                switch ($sort) {
-                    case 'price_low': return $q->orderBy('price', 'asc');
-                    case 'price_high': return $q->orderBy('price', 'desc');
-                    case 'title_asc': return $q->orderBy('title', 'asc');
-                    default: return $q->orderByDesc('created_at');
-                }
-            });
-
-            $products = $query->paginate($perPage);
-
-            // 4. Construct the Final Response
+            // 3. Prepare Common Profile Data
             $data = [
                 'profile' => [
-                    'store_name' => $user->storefront->name,
-                    'bio'        => $user->storefront->bio,
+                    'store_name'    => $user->storefront->name,
+                    'bio'           => $user->storefront->bio,
                     'profile_photo' => $user->profile_photo,
-                    'cover_photo' => $user->cover_photo,
-                    'store-name' => $user->storefront->name,
-                    'store-url'   => $user->storefront->slug,
-                    // Optional: 'avatar' => $user->avatar 
-                ],
-                'products' => $products
+                    'cover_photo'   => $user->cover_photo,
+                    'store_slug'    => $user->storefront->slug,
+                    'instagram'     => $user->storefront->instagram_link,
+                    'tiktok'        => $user->storefront->tiktok_link,
+                    'total_products'=> Product::where('storefront_id', $user->storefront->id)->count(),
+                ]
             ];
+
+            // 4. Conditional Logic: Fetch ONLY what is needed
+            if ($groupByAlbum) {
+                // --- OPTION A: Fetch Albums (Categorized) ---
+                $albums = \App\Models\Album::where('storefront_id', $user->storefront->id)
+                    ->with(['products' => function($q) {
+                        $q->latest(); // You can also apply search filters here if needed
+                    }])
+                    ->get();
+
+                // Transform Links inside Albums
+                $albums->each(function($album) {
+                    $album->products->transform(function($product) {
+                        $product->product_link = route('product.track', ['id' => $product->id]);
+                        return $product;
+                    });
+                });
+
+                $data['albums'] = $albums;
+
+            } else {
+                // --- OPTION B: Fetch All Products (Flat List) ---
+                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks');
+
+                // Filters
+                $query->when($minPrice, fn($q) => $q->where('price', '>=', $minPrice));
+                $query->when($maxPrice, fn($q) => $q->where('price', '<=', $maxPrice));
+                
+                $query->when($search, function ($q) use ($search) {
+                    return $q->where(function ($subQuery) use ($search) {
+                        $subQuery->where('title', 'LIKE', "%{$search}%")
+                                 ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%");
+                    });
+                });
+
+                // Sorting
+                $query->when($sort, function ($q) use ($sort) {
+                    switch ($sort) {
+                        case 'price_low':  return $q->orderBy('price', 'asc');
+                        case 'price_high': return $q->orderBy('price', 'desc');
+                        case 'title_asc':  return $q->orderBy('title', 'asc');
+                        default:           return $q->orderByDesc('created_at');
+                    }
+                });
+
+                $products = $query->paginate($perPage);
+
+                // Transform: Add Link & Ensure Clicks are visible
+                $products->getCollection()->transform(function ($product) {
+                    $product->product_link = route('product.track', ['id' => $product->id]);
+                    
+                    // The 'total_clicks' column is already in the database, 
+                    // so $product->total_clicks is automatically sent to the frontend.
+                    // We don't need to do anything extra here!
+                    
+                    return $product;
+                });
+
+                $data['products'] = $products;
+            }
 
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
@@ -247,7 +283,6 @@ class StorefrontController extends Controller
 
         return apiSuccess('Storefront profile retrieved successfully.', $data);
     }
-
     public function storefrontProducts(SearchProductRequest $request) {
         try {
             // 1. Get Input Parameters

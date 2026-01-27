@@ -27,6 +27,7 @@ class SearchProductRequest extends FormRequest
             'min_price' => 'nullable|numeric|min:0',
             'max_price' => 'nullable|numeric|min:0|gte:min_price', // Must be greater than or equal to min_price
             'sort'      => 'nullable|string|in:price_low,price_high,newest,oldest,title_asc,title_desc',
+            'group_by_album' => 'nullable|boolean',
         ];
     }
 

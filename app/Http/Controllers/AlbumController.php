@@ -24,7 +24,7 @@ class AlbumController extends Controller
             }
 
             $data['slug'] = $slug;
-            $data['user_id'] = auth()->id();
+            $data['storefront_id'] = auth()->user()->storefront->id;
 
             $album = Album::create($data);
 
