@@ -309,7 +309,7 @@ class StorefrontController extends Controller
             return apiError($e->getMessage());
         }
 
-        return apiSuccess('Marketplace products retrieved successfully.', $products);
+        return apiSuccess('All products retrieved successfully.', $products);
     }
 
     public function storefrontSingleProduct($id) {
