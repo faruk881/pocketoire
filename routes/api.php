@@ -64,7 +64,8 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::put('/storefront/albums/{id}',[AlbumController::class,'updateAlbum'])->name('storefront.albums.update');
     Route::get('/creator/profile', [CreatorProfileController::class, 'show'])->name('creator.profile.show');
     route::patch('/creator/profile',[CreatorProfileController::class,'update'])->name('creator.profile.update');
-    Route::post('/product',[ProductController::class,'store'])->name('product.store');
+    Route::post('/product',[ProductController::class,'storeProduct'])->name('product.store')->middleware('storefrontActive');
+    Route::patch('/product/{id}/refresh',[ProductController::class,'refreshProduct'])->name('product.refresh')->middleware('storefrontActive');
     Route::get('/all-vaitor-products',[ProductController::class,'showVaitorProduct'])->name('product.showVaitorProduct');
     Route::get('/vaitor-products-destination',[ProductController::class,'showVaitorProductDestination'])->name('product.showVaitorProductDestination');
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');

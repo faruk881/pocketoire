@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2)->nullable();
-            $table->enum('currency', ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SEK', 'NZD'])->default('USD');
+            $table->string('currency', 3)->ulllable();
             $table->string('product_link');
             $table->string('vaitor_product_code')->nullable();
             $table->timestamps();

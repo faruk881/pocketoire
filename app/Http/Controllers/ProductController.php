@@ -13,17 +13,24 @@ use Illuminate\Support\Facades\Cookie;
 
 class ProductController extends Controller
 {
-    private $apiKey = '72f9caa8-a5bb-4b9f-82af-5e42feaace5d'; //viator sandbox key
-    private $baseUrl = 'https://api.sandbox.viator.com/partner';
-    private $urlExt = '/products/search';
+
+    private $baseUrl;
+    private $apiKey;
+
+    public function __construct()
+    {
+        $this->baseUrl = config('services.viator.viator_api_base_url');
+        $this->apiKey  = config('services.viator.viator_api_key');
+    }
 
     private function extractViatorProductId(string $url): ?string
     {
         // Remove query string
         $cleanUrl = strtok($url, '?');
 
-        // Match /dXXX-{productId}
-        if (preg_match('/\/d\d+-([0-9]+P[0-9]+)/', $cleanUrl, $matches)) {
+        // d is destination, everything after "-" is product code
+        // Also support /p- URLs
+        if (preg_match('/\/(?:d\d+-|p-)([^\/]+)/', $cleanUrl, $matches)) {
             return $matches[1];
         }
 
@@ -36,7 +43,7 @@ class ProductController extends Controller
             'Accept' => 'application/json;version=2.0',
             'Accept-Language' => 'en-US',
             'Content-Type' => 'application/json',
-        ])->get($this->baseUrl.'/destinations');
+        ])->get($this->baseUrl.'/partner/destinations');
 
         return response()->json($response->json());
 
@@ -62,7 +69,7 @@ class ProductController extends Controller
             'Accept' => 'application/json;version=2.0',
             'Content-Type' => 'application/json',
             'Accept-Language'=> 'en-US',
-        ])->post($this->baseUrl.$this->urlExt, [
+        ])->post($this->baseUrl.'partner/products/search', [
             "filtering" => [
                 "destination" => $destination,
             ],
@@ -155,26 +162,29 @@ class ProductController extends Controller
     }
     
 
-    public function store(StoreProductRequest $request){
+    public function storeProduct(StoreProductRequest $request){
+        
+        // Get the product link
         $productLink = $request->product_link;
+        // Check if product exists
         $viatorProductCode = $this->extractViatorProductId($productLink);
         if (Product::where('vaitor_product_code', $viatorProductCode)->exists()) {
             return apiError('This product already exists.', 409);
         }
 
         try{
-            // 1. Fetch Product Content (Name & Description)
+            // Fetch Product Content (Name & Description)
             $contentResponse = Http::withHeaders([
                 'exp-api-key' => $this->apiKey,
                 'Accept-Language' => 'en-US',
                 'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/products/{$viatorProductCode}");
+            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
 
-            // 2. Fetch Pricing Schedule (Lowest Price)
+            // Fetch Pricing Schedule (Lowest Price)
             $priceResponse = Http::withHeaders([
                 'exp-api-key' => $this->apiKey,
                 'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/availability/schedules/{$viatorProductCode}");
+            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
@@ -183,8 +193,10 @@ class ProductController extends Controller
         //     return response()->json(['error' => 'Could not fetch product data'.$productCode], 404);
         // }
 
+        // P
         $content = $contentResponse->json();
         $priceData = $priceResponse->json();
+        
 
         $imageUrls = [];
         if (!empty($content['images'])) {
@@ -196,18 +208,24 @@ class ProductController extends Controller
                 $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
             }
         }
+     
 
-        $product = Product::create([
-            'user_id' => auth()->user()->id,
-            'storefront_id' => auth()->user()->storefront->id,
-            'album_id' => $request->album_id,
-            'title' => $content['title'],
-            'description' => $content['description'],
-            'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
-            'currency'     => $priceData['currency'] ?? 'USD',
-            'product_link' => $productLink,
-            'vaitor_product_code' => $viatorProductCode,
-        ]);
+        try{
+            $product = Product::create([
+                'user_id' => auth()->user()->id,
+                'storefront_id' => auth()->user()->storefront->id,
+                'album_id' => $request->album_id,
+                'title' => $content['title'],
+                'description' => $content['description'],
+                'price'        => $priceData['summary']['fromPrice'] ?? null,
+                'currency'     => $priceData['currency'] ?? 'USD',
+                'product_link' => $productLink,
+                'vaitor_product_code' => $viatorProductCode,
+            ]);
+        } catch(\Throwable $e){
+            return apiError($e->getMessage());
+        }
+           
 
         foreach ($imageUrls as $url) {
             ProductImage::create([
@@ -217,7 +235,82 @@ class ProductController extends Controller
             ]);
         }
 
-        return apiSuccess('products inserted successfully.', $product);
+
+        return apiSuccess('The product inserted successfully.', $product);
+
+    }
+
+    public function refreshProduct($id){
+        // Get the product link
+        $productId = $id;
+        $product = Product::findOrFail($productId);
+        $productLink = $product->product_link;
+        // Check if product exists
+        $viatorProductCode = $this->extractViatorProductId($productLink);
+
+        try{
+            // Fetch Product Content (Name & Description)
+            $contentResponse = Http::withHeaders([
+                'exp-api-key' => $this->apiKey,
+                'Accept-Language' => 'en-US',
+                'Accept' => 'application/json;version=2.0',
+            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
+
+            // Fetch Pricing Schedule (Lowest Price)
+            $priceResponse = Http::withHeaders([
+                'exp-api-key' => $this->apiKey,
+                'Accept' => 'application/json;version=2.0',
+            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
+        } catch(\Throwable $e){
+            return apiError($e->getMessage());
+        }
+
+        // if ($contentResponse->failed() || $priceResponse->failed()) {
+        //     return response()->json(['error' => 'Could not fetch product data'.$productCode], 404);
+        // }
+
+        // P
+        $content = $contentResponse->json();
+        $priceData = $priceResponse->json();
+        
+
+        $imageUrls = [];
+        if (!empty($content['images'])) {
+            // Use array_slice to get only the first 5 images
+            $imagesToProcess = array_slice($content['images'], 0, 5);
+            
+            foreach ($imagesToProcess as $image) {
+                // Collect high-res variant if available
+                $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
+            }
+        }
+     
+
+        try{
+            $product->update([
+                'title' => $content['title'],
+                'description' => $content['description'],
+                'price'        => $priceData['summary']['fromPrice'] ?? null,
+                'currency'     => $priceData['currency'] ?? 'USD',
+                'product_link' => $productLink,
+                'vaitor_product_code' => $viatorProductCode,
+            ]);
+        } catch(\Throwable $e){
+            return apiError($e->getMessage());
+        }
+           
+
+        ProductImage::where('product_id', $productId)->delete();
+        foreach ($imageUrls as $url) {
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image' => $url,
+                'source' => 'viator',
+            ]);
+        }
+
+
+        return apiSuccess('The product refreshed successfully.', $product);
 
     }
 

@@ -23,7 +23,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'album_id' => ['required', 'integer', 'exists:albums,id'],
-            'product_link' => ['required', 'url', 'regex:/viator\.com\/.*\/d\d+-[0-9]+P[0-9]+/'],
+            'product_link' => ['required', 'url', 'regex:/viator\.com\/.*\/(?:d\d+-|p-)[^\/\?]+/'],
         ];
     }
 

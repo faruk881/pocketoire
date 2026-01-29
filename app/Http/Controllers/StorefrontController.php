@@ -194,10 +194,6 @@ class StorefrontController extends Controller
                 return apiError('You do not have a storefront yet.',403);
             }
 
-            if ($user->storefront->status != 'active') {
-                return apiError('Your storefront is not active. Please contact admin.',403);
-            }
-
             // 2. Get Input Parameters
             // Use boolean() to correctly handle "true"/"1"/"on"
             $groupByAlbum = $request->boolean('group_by_album'); 
