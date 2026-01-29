@@ -43,5 +43,9 @@ return [
     'stripe' => [
         'secret' => env('STRIPE_SECRET'),
     ],
+    'viator' => [
+        'viator_api_key' => env('VIATOR_API_KEY'),
+        'viator_api_base_url' => env('VIATOR_API_BASE_URL'),
+    ]
 
 ];

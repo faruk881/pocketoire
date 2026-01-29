@@ -42,8 +42,8 @@ class AlbumController extends Controller
 
     public function getAlbums(){
         try{
-            $user_id = auth()->id();
-            $albums = Album::where('user_id', $user_id)->get(['id','name','slug','description']);
+            $storefront_id = auth()->user()->storefront->id;
+            $albums = Album::where('storefront_id', $storefront_id)->get(['id','name','slug','description']);
 
             return apiSuccess('Albums retrieved successfully.', $albums);
 
@@ -57,7 +57,7 @@ class AlbumController extends Controller
         try {
             $album = Album::findOrFail($id);
 
-            if ($album->user_id !== auth()->id()) {
+            if ($album->storefront_id !== auth()->user()->storefront->id) {
                 return apiError('You are not authorized to update this album.', 403);
             }
 

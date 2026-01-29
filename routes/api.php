@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Admin\ComissionController;
+use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomePage\ContactMessageController;
@@ -67,6 +69,7 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::get('/vaitor-products-destination',[ProductController::class,'showVaitorProductDestination'])->name('product.showVaitorProductDestination');
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');
     Route::post('/generate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateLink');
+    Route::get('/creator/earnings',[CreatorEarningController::class,'getCreatorEarnings']);
 
 });
 
@@ -82,6 +85,7 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
    Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
    Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
    Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
+   Route::post('/admin/creator/add-comission',[ComissionController::class,'addComissionToCreator']);
 
    // Buyer Management
    Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');

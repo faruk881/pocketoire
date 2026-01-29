@@ -7,6 +7,7 @@ use App\Http\Requests\SearchProductRequest;
 use App\Http\Requests\SearchStorefrontRequest;
 use App\Http\Requests\StorefrontUrlCheckRequest;
 use App\Http\Requests\StoreProductRequest;
+use App\Models\Album;
 use App\Models\Product;
 use App\Models\Storefront;
 use App\Services\StripeService;
@@ -220,7 +221,7 @@ class StorefrontController extends Controller
             // 4. Conditional Logic: Fetch ONLY what is needed
             if ($groupByAlbum) {
                 // --- OPTION A: Fetch Albums (Categorized) ---
-                $albums = \App\Models\Album::where('storefront_id', $user->storefront->id)
+                $albums = Album::where('storefront_id', $user->storefront->id)
                     ->with(['products' => function($q) {
                         $q->latest(); // You can also apply search filters here if needed
                     }])
@@ -238,7 +239,7 @@ class StorefrontController extends Controller
 
             } else {
                 // --- OPTION B: Fetch All Products (Flat List) ---
-                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks');
+                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks')->withCount('sales')->withSum('sales','creator_comission');
 
                 // Filters
                 $query->when($minPrice, fn($q) => $q->where('price', '>=', $minPrice));

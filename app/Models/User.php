@@ -65,4 +65,9 @@ class User extends Authenticatable
     public function storefront(){
         return $this->hasOne(Storefront::class);
     }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
 }
