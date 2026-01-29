@@ -85,7 +85,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
    Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
    Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
    Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
-   Route::post('/admin/creator/add-comission',[ComissionController::class,'addComissionToCreator']);
+   Route::post('/admin/creator/add-comission',[ComissionController::class,'addCreatorComission']);
+   Route::get('/admin/creator/view-comission',[ComissionController::class,'viewCreatorComission']);
 
    // Buyer Management
    Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');

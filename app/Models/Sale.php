@@ -8,13 +8,13 @@ class Sale extends Model
 {
     protected $guarded = ['id'];
 
-    public function products(){
+    public function product(){
         return $this->belongsTo(Product::class);
     }
 
-    public function creator() // name it 'creator' for clarity
+    public function user() // name it 'creator' for clarity
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
     }
 
 }

@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class ComissionController extends Controller
 {
-    public function addComissionToCreator(addComissionToCreatorRequest $request)
+    public function addCreatorComission(addComissionToCreatorRequest $request)
     {
         $sale = Sale::findOrFail($request->id);
 
@@ -31,5 +31,31 @@ class ComissionController extends Controller
                 'creator_comission'   => $sale->creator_comission,
             ]
         );
+    }
+
+    public function viewCreatorComission(Request $request){
+        $perPage  = $request->get('per_page', 10);
+        $latestSaleIds = Sale::selectRaw('MAX(id)')
+        ->groupBy('booking_ref');
+        $sales = Sale::select('id',
+                            'product_id',
+                            'user_id',
+                            'booking_ref',
+                            'event_type',
+                            'campaign_value',
+                            'affiliate_comission',
+                            'creator_comission',
+                            'creator_comission_percent')
+                            ->whereIn('id', $latestSaleIds)
+                            ->with(['product:id,title',
+                                    'user' => function($query) {
+                                        $query->select('id', 'name', 'email')
+                                            ->with('storefront:id,user_id,name'); // Change 'name' to your actual column like 'store_name'
+                                        }
+                                    ])
+                            ->latest('id')
+                            ->paginate($perPage);
+
+        return apiSuccess('All comissions loaded.', ['sales' => $sales]);
     }
 }
