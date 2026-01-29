@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\User;
 use App\Models\ViatorSyncState;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
@@ -31,6 +32,7 @@ class SyncViatorBookings extends Command
      */
     public function handle()
     {
+
         $this->info('Starting Viator sales sync...');
 
         // Load last cursor from DB
@@ -58,7 +60,7 @@ class SyncViatorBookings extends Command
             foreach ($bookings as $booking) {
                 // Find the product by Viator product code
                 $product = Product::where('vaitor_product_code', $booking['bookedItem']['productCode'])->first();
-                if (!$product) continue; // Skip if no matching product
+                $product_id = $product ? $product->id : null;
 
                 // Extract creator_id from campaign_value (e.g., "creator_2")
                 $creatorId = null;
@@ -66,9 +68,8 @@ class SyncViatorBookings extends Command
                     if (preg_match('/creator_(\d+)/', $booking['campaignValue'], $matches)) {
                         $creatorId = (int)$matches[1];
 
-                        // Skip this sale if the creator does not exist
-                        if (!\App\Models\User::where('id', $creatorId)->exists()) {
-                            continue; // Skip processing this booking
+                        if (!User::where('id', $creatorId)->exists()) {
+                            $creatorId = null;
                         }
                     }
                 }
@@ -77,8 +78,9 @@ class SyncViatorBookings extends Command
                 Sale::updateOrCreate(
                     ['transaction_ref' => $booking['transactionRef']],
                     [
-                        'product_id' => $product->id,
+                        'product_id' => $product_id,
                         'user_id' => $creatorId,
+                        'product_code' => $booking['bookedItem']['productCode'],
                         'booking_ref' => $booking['bookingRef'],
                         'event_type' => $booking['eventType'],
                         'campaign_value' => $booking['campaignValue'] ?? null,

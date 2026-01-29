@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('product_code')->nullable();
             $table->string('booking_ref')->index();
             $table->string('transaction_ref')->unique();
             $table->string('event_type',50)->index(); //'CONFIRMATION', 'REJECTION', 'AMENDMENT','CANCELLATION','CUSTOMER_CANCELLATION
