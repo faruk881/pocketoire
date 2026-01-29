@@ -47,6 +47,7 @@ class ComissionController extends Controller
                             'creator_comission',
                             'creator_comission_percent')
                             ->whereIn('id', $latestSaleIds)
+                            ->whereNotNull('user_id')
                             ->with(['product:id,title',
                                     'user' => function($query) {
                                         $query->select('id', 'name', 'email')
