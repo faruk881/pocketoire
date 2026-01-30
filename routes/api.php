@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Admin\ComissionController;
+use App\Http\Controllers\Admin\commissionController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
@@ -86,8 +86,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
    Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
    Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
    Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
-   Route::post('/admin/creator/add-comission',[ComissionController::class,'addCreatorComission']);
-   Route::get('/admin/creator/view-comission',[ComissionController::class,'viewCreatorComission']);
+   Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
+   Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
 
    // Buyer Management
    Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');

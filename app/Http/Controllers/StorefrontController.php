@@ -239,7 +239,7 @@ class StorefrontController extends Controller
 
             } else {
                 // --- OPTION B: Fetch All Products (Flat List) ---
-                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks')->withCount('sales')->withSum('sales','creator_comission');
+                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks')->withCount('sales')->withSum('sales','creator_commission');
 
                 // Filters
                 $query->when($minPrice, fn($q) => $q->where('price', '>=', $minPrice));

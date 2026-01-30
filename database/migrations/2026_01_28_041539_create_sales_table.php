@@ -24,8 +24,8 @@ return new class extends Migration
             $table->string('travel_time')->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->decimal('platform_commission', 10, 2)->nullable();
-            $table->decimal('creator_comission', 10, 2)->nullable();
-            $table->integer('creator_comission_percent')->nullable();
+            $table->decimal('creator_commission', 10, 2)->nullable();
+            $table->integer('creator_commission_percent')->nullable();
             $table->string('currency')->default('USD');
             $table->enum('status', ['confirmed','rejected','amended'])->index();
             $table->json('raw_payload')->nullable();

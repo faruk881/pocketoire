@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class addComissionToCreatorRequest extends FormRequest
+class addcommissionToCreatorRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,7 +23,7 @@ class addComissionToCreatorRequest extends FormRequest
     {
         return [
             'platform_commission' => ['required', 'numeric', 'min:0'],
-            'creator_comission_percent'   => ['required', 'numeric', 'between:0,100'],
+            'creator_commission_percent'   => ['required', 'numeric', 'between:0,100'],
         ];
     }
 
@@ -35,9 +35,9 @@ class addComissionToCreatorRequest extends FormRequest
             'platform_commission.numeric'  => 'Platform commission must be a number.',
             'platform_commission.min'      => 'Platform commission cannot be negative.',
 
-            'creator_comission_percent.required'   => 'Creator Commission percent is required.',
-            'creator_comission_percent.numeric'    => 'Creator Commission percent must be a number.',
-            'creator_comission_percent.between'    => 'Creator Commission percent must be between 0 and 100.',
+            'creator_commission_percent.required'   => 'Creator Commission percent is required.',
+            'creator_commission_percent.numeric'    => 'Creator Commission percent must be a number.',
+            'creator_commission_percent.between'    => 'Creator Commission percent must be between 0 and 100.',
         ];
     }
 }

@@ -23,7 +23,7 @@ class CreatorEarningController extends Controller
                 products.title,
                 MIN(product_images.image) as main_image,
                 COUNT(sales.id) as total_conversions,
-                SUM(sales.creator_comission) as total_earnings
+                SUM(sales.creator_commission) as total_earnings
             ')
             ->groupBy(
                 'sales.product_code',

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\addComissionToCreatorRequest;
+use App\Http\Requests\addcommissionToCreatorRequest;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 
-class ComissionController extends Controller
+class commissionController extends Controller
 {
-    public function addCreatorComission(addComissionToCreatorRequest $request)
+    public function addCreatorcommission(addcommissionToCreatorRequest $request)
     {
         $sale = Sale::findOrFail($request->id);
 
@@ -18,22 +18,22 @@ class ComissionController extends Controller
         }
 
         $sale->platform_commission = $request->platform_commission;
-        $sale->creator_comission = ($sale->platform_commission * $request->creator_comission_percent) / 100;
-        $sale->creator_comission_percent = $request->creator_comission_percent;
+        $sale->creator_commission = ($sale->platform_commission * $request->creator_commission_percent) / 100;
+        $sale->creator_commission_percent = $request->creator_commission_percent;
         $sale->save();
 
         return apiSuccess(
-            'Commission settings updated successfully.',
+            'Commission updated successfully.',
             [
                 'product_id'          => $sale->id,
                 'platform_commission' => $sale->platform_commission,
-                'comission_percent'   => $sale->creator_comission_percent,
-                'creator_comission'   => $sale->creator_comission,
+                'commission_percent'   => $sale->creator_commission_percent,
+                'creator_commission'   => $sale->creator_commission,
             ]
         );
     }
 
-    public function viewCreatorComission(Request $request){
+    public function viewCreatorcommission(Request $request){
         $perPage  = $request->get('per_page', 10);
         $latestSaleIds = Sale::selectRaw('MAX(id)')
         ->groupBy('booking_ref');
@@ -44,8 +44,8 @@ class ComissionController extends Controller
                             'event_type',
                             'campaign_value',
                             'platform_commission',
-                            'creator_comission',
-                            'creator_comission_percent')
+                            'creator_commission',
+                            'creator_commission_percent')
                             ->whereIn('id', $latestSaleIds)
                             ->whereNotNull('user_id')
                             ->with(['product:id,title',
@@ -57,6 +57,6 @@ class ComissionController extends Controller
                             ->latest('id')
                             ->paginate($perPage);
 
-        return apiSuccess('All comissions loaded.', ['sales' => $sales]);
+        return apiSuccess('All commissions loaded.', ['sales' => $sales]);
     }
 }
