@@ -12,34 +12,36 @@ class CreatorEarningController extends Controller
     {
         $creatorId = auth()->id();
 
-        $products = Product::with('product_images')
-            ->withCount([
-                'sales as total_sales' => function ($query) use ($creatorId) {
-                    $query->whereIn('status', ['confirmed', 'amended'])
-                        ->where('user_id', $creatorId);
-                },
-                'clicks as total_clicks',
-            ])
-            ->withSum([
-                'sales as total_earnings' => function ($query) use ($creatorId) {
-                    $query->whereIn('status', ['confirmed', 'amended'])
-                        ->where('user_id', $creatorId);
-                }
-            ], 'creator_comission')
-            ->where('user_id', $creatorId)
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'product_code' => $product->viator_product_code,
-                    'title' => $product->title,
-                    'main_image' => $product->product_images[0]->image ?? null,
-                    'total_conversions' => $product->total_sales ?? 0,
-                    'total_clicks' => $product->total_clicks ?? 0,
-                    'total_earnings' => $product->total_earnings ?? 0,
-                ];
-            });
+        $sales = Sale::query()
+            ->where('sales.user_id', $creatorId) // 👈 FIX
+            ->whereIn('sales.status', ['confirmed', 'amended']) // 👈 also qualify
+            ->leftJoin('products', 'sales.product_id', '=', 'products.id')
+            ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
+            ->selectRaw('
+                sales.product_code,
+                products.id as product_id,
+                products.title,
+                MIN(product_images.image) as main_image,
+                COUNT(sales.id) as total_conversions,
+                SUM(sales.creator_comission) as total_earnings
+            ')
+            ->groupBy(
+                'sales.product_code',
+                'products.id',
+                'products.title'
+            )
+            ->get();
 
-        return apiSuccess('All data loaded.', ['products' => $products]);
+        return apiSuccess('All data loaded.', [
+            'products' => $sales->map(fn ($row) => [
+                'id' => $row->product_id,               // NULL if product missing
+                'product_code' => $row->product_code,   // ALWAYS available
+                'title' => $row->title ?? 'Unlisted Product',
+                'main_image' => $row->main_image,
+                'total_conversions' => (int) $row->total_conversions,
+                'total_clicks' => 0, // clicks impossible without product
+                'total_earnings' => (float) $row->total_earnings,
+            ])
+        ]);
     }
 }
