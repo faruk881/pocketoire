@@ -59,7 +59,7 @@ class SyncViatorBookings extends Command
 
             foreach ($bookings as $booking) {
                 // Find the product by Viator product code
-                $product = Product::where('vaitor_product_code', $booking['bookedItem']['productCode'])->first();
+                $product = Product::where('viator_product_code', $booking['bookedItem']['productCode'])->first();
                 $product_id = $product ? $product->id : null;
 
                 // Extract creator_id from campaign_value (e.g., "creator_2")

@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->nullable();
             $table->string('currency', 3)->ulllable();
             $table->string('product_link');
-            $table->string('vaitor_product_code')->nullable();
+            $table->string('viator_product_code')->nullable();
             $table->timestamps();
         });
     }
