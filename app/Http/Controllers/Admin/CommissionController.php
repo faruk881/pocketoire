@@ -6,31 +6,39 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\addcommissionToCreatorRequest;
 use App\Models\Sale;
 use Illuminate\Http\Request;
+use Stripe\Card;
 
 class commissionController extends Controller
 {
     public function addCreatorcommission(addcommissionToCreatorRequest $request)
     {
-        $sale = Sale::findOrFail($request->id);
+        try {
+            $sale = Sale::find($request->id);
+            if (!$sale) {
+                return apiError('Sale not found', 404);
+            }
 
-        if (!in_array($sale->event_type, ['CONFIRMATION', 'AMENDMENT'])) {
-            return apiError('Operation not supported for this sale');
+            if (!in_array($sale->event_type, ['CONFIRMATION', 'AMENDMENT'])) {
+                return apiError('Operation not supported for this sale');
+            }
+
+            $sale->platform_commission = $request->platform_commission;
+            $sale->creator_commission = ($sale->platform_commission * $request->creator_commission_percent) / 100;
+            $sale->creator_commission_percent = $request->creator_commission_percent;
+            $sale->save();
+
+            return apiSuccess(
+                'Commission updated successfully.',
+                [
+                    'product_id'          => $sale->id,
+                    'platform_commission' => $sale->platform_commission,
+                    'commission_percent'   => $sale->creator_commission_percent,
+                    'creator_commission'   => $sale->creator_commission,
+                ]
+            );
+        } catch (\Exception $e) {
+            return apiError('An error occurred: ' . $e->getMessage());
         }
-
-        $sale->platform_commission = $request->platform_commission;
-        $sale->creator_commission = ($sale->platform_commission * $request->creator_commission_percent) / 100;
-        $sale->creator_commission_percent = $request->creator_commission_percent;
-        $sale->save();
-
-        return apiSuccess(
-            'Commission updated successfully.',
-            [
-                'product_id'          => $sale->id,
-                'platform_commission' => $sale->platform_commission,
-                'commission_percent'   => $sale->creator_commission_percent,
-                'creator_commission'   => $sale->creator_commission,
-            ]
-        );
     }
 
     public function viewCreatorcommission(Request $request){
