@@ -22,7 +22,7 @@ class addComissionToCreatorRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'affiliate_comission' => ['required', 'numeric', 'min:0'],
+            'platform_commission' => ['required', 'numeric', 'min:0'],
             'creator_comission_percent'   => ['required', 'numeric', 'between:0,100'],
         ];
     }
@@ -31,9 +31,9 @@ class addComissionToCreatorRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'affiliate_comission.required' => 'Affiliate commission is required.',
-            'affiliate_comission.numeric'  => 'Affiliate commission must be a number.',
-            'affiliate_comission.min'      => 'Affiliate commission cannot be negative.',
+            'platform_commission.required' => 'Affiliate commission is required.',
+            'platform_commission.numeric'  => 'Affiliate commission must be a number.',
+            'platform_commission.min'      => 'Affiliate commission cannot be negative.',
 
             'creator_comission_percent.required'   => 'Creator Commission percent is required.',
             'creator_comission_percent.numeric'    => 'Creator Commission percent must be a number.',

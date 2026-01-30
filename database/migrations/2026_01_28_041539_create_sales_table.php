@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('travel_date')->nullable();
             $table->string('travel_time')->nullable();
             $table->decimal('price', 10, 2)->nullable();
-            $table->decimal('affiliate_comission', 10, 2)->nullable();
+            $table->decimal('platform_commission', 10, 2)->nullable();
             $table->decimal('creator_comission', 10, 2)->nullable();
             $table->integer('creator_comission_percent')->nullable();
             $table->string('currency')->default('USD');

@@ -17,8 +17,8 @@ class ComissionController extends Controller
             return apiError('Operation not supported for this sale');
         }
 
-        $sale->affiliate_comission = $request->affiliate_comission;
-        $sale->creator_comission = ($sale->affiliate_comission * $request->creator_comission_percent) / 100;
+        $sale->platform_commission = $request->platform_commission;
+        $sale->creator_comission = ($sale->platform_commission * $request->creator_comission_percent) / 100;
         $sale->creator_comission_percent = $request->creator_comission_percent;
         $sale->save();
 
@@ -26,7 +26,7 @@ class ComissionController extends Controller
             'Commission settings updated successfully.',
             [
                 'product_id'          => $sale->id,
-                'affiliate_comission' => $sale->affiliate_comission,
+                'platform_commission' => $sale->platform_commission,
                 'comission_percent'   => $sale->creator_comission_percent,
                 'creator_comission'   => $sale->creator_comission,
             ]
@@ -43,7 +43,7 @@ class ComissionController extends Controller
                             'booking_ref',
                             'event_type',
                             'campaign_value',
-                            'affiliate_comission',
+                            'platform_commission',
                             'creator_comission',
                             'creator_comission_percent')
                             ->whereIn('id', $latestSaleIds)
