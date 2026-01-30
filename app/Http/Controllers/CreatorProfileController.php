@@ -16,7 +16,6 @@ class CreatorProfileController extends Controller
         return apiSuccess('User loaded.',[
             'data' => new CreatorProfileResource($creator)
         ]);
-
     }
 
     public function update(UpdateCreatorProfileRequest $request){

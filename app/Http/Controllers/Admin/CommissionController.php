@@ -42,29 +42,33 @@ class commissionController extends Controller
     }
 
     public function viewCreatorcommission(Request $request){
-        $perPage  = $request->get('per_page', 10);
-        $latestSaleIds = Sale::selectRaw('MAX(id)')
-        ->groupBy('booking_ref');
-        $sales = Sale::select('id',
-                            'product_id',
-                            'user_id',
-                            'booking_ref',
-                            'event_type',
-                            'campaign_value',
-                            'platform_commission',
-                            'creator_commission',
-                            'creator_commission_percent')
-                            ->whereIn('id', $latestSaleIds)
-                            ->whereNotNull('user_id')
-                            ->with(['product:id,title',
-                                    'user' => function($query) {
-                                        $query->select('id', 'name', 'email')
-                                            ->with('storefront:id,user_id,name'); // Change 'name' to your actual column like 'store_name'
-                                        }
-                                    ])
-                            ->latest('id')
-                            ->paginate($perPage);
+        try{
+            $perPage  = $request->get('per_page', 10);
+            $latestSaleIds = Sale::selectRaw('MAX(id)')
+            ->groupBy('booking_ref');
+            $sales = Sale::select('id',
+                                'product_id',
+                                'user_id',
+                                'booking_ref',
+                                'event_type',
+                                'campaign_value',
+                                'platform_commission',
+                                'creator_commission',
+                                'creator_commission_percent')
+                                ->whereIn('id', $latestSaleIds)
+                                ->whereNotNull('user_id')
+                                ->with(['product:id,title',
+                                        'user' => function($query) {
+                                            $query->select('id', 'name', 'email')
+                                                ->with('storefront:id,user_id,name'); // Change 'name' to your actual column like 'store_name'
+                                            }
+                                        ])
+                                ->latest('id')
+                                ->paginate($perPage);
 
-        return apiSuccess('All commissions loaded.', ['sales' => $sales]);
+            return apiSuccess('All commissions loaded.', ['sales' => $sales]);
+        } catch (\Exception $e) {
+            return apiError('An error occurred: ' . $e->getMessage());
+        }
     }
 }
