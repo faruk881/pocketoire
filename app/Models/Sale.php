@@ -16,5 +16,9 @@ class Sale extends Model
     {
         return $this->belongsTo(User::class);
     }
-
+    
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
 }
