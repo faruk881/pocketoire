@@ -14,6 +14,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
+use App\Http\Controllers\StripeConnectController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -71,6 +72,10 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');
     Route::post('/generate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateLink');
     Route::get('/creator/earnings',[CreatorEarningController::class,'getCreatorEarnings']);
+
+
+    // Payment Payouts
+    Route::post('/stripe/connect/onboard',[StripeConnectController::class,'stripeOnboard'])->name('creator.stripe.onboard');
 
 });
 
