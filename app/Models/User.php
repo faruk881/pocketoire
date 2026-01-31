@@ -74,4 +74,19 @@ class User extends Authenticatable
     public function wallet() {
         return $this->hasOne(Wallet::class);
     }
+
+    public function creator_comission_override()
+    {
+        return $this->hasOne(CreatorCommissionOverrides::class);
+    }
+
+    public function isCreator()
+    {
+        return $this->account_type === 'creator';
+    }
+
+    public function isBuyer()
+    {
+        return $this->account_type === 'buyer';
+    }
 }

@@ -89,6 +89,12 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
    Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
    Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
 
+   // Payouts Management
+   Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');
+   Route::post('/admin/global/commission/update',[commissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
+   Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
+   Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
+   Route::get('/admin/custom/commission/add-view',[commissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
    // Buyer Management
    Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
    Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');
