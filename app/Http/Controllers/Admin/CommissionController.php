@@ -134,20 +134,21 @@ class commissionController extends Controller
     public function payoutView(){
         try {
             // Get global commission setting
-            $global_comission_percent = CommissionSetting::where('active', true)->first();
+            $global_commission_percent = CommissionSetting::where('active', true)->first();
 
             // Get custom commission overrides with user details
-            $custom_comission_percent = CreatorCommissionOverrides::with('user:id,name,email')->get();
+            $custom_commission_percent = CreatorCommissionOverrides::with('user:id,name,email')->get();
 
             // Prepare response data
-            $data['global_creator_commission_percent'] = $global_comission_percent->global_creator_commission_percent;
-            $data['custom_creator_commission'] = $custom_comission_percent?:null;
+            $data['global_creator_commission_percent'] = $global_commission_percent->global_creator_commission_percent;
+            $data['custom_creator_commission'] = $custom_commission_percent?:null;
 
             $data['creators'] = User::where('account_type', 'creator')
                 ->select('id', 'name', 'email')
                 ->with('storefront:id,user_id,name')
-                ->with('wallet:id,user_id,balance,status')
-                ->get();
+                ->with('wallet:id,user_id,balance,status,currency')
+                ->get()
+                ->each->append('commission_percent');
 
             // Return response
             return apiSuccess('Payout settings loaded.', $data);

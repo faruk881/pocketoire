@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Sale;
+use App\Models\Wallet;
 use Illuminate\Http\Request;
 
 class CreatorEarningController extends Controller
@@ -11,11 +12,13 @@ class CreatorEarningController extends Controller
     public function getCreatorEarnings()
     {
         try {
+            // Get the authenticated creator's ID
             $creatorId = auth()->id();
 
+            // Fetch sales data for the creator
             $sales = Sale::query()
-                ->where('sales.user_id', $creatorId) // 👈 FIX
-                ->whereIn('sales.status', ['confirmed', 'amended']) // 👈 also qualify
+                ->where('sales.user_id', $creatorId)
+                ->whereIn('sales.status', ['confirmed', 'amended']) 
                 ->leftJoin('products', 'sales.product_id', '=', 'products.id')
                 ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
                 ->selectRaw('
@@ -33,8 +36,8 @@ class CreatorEarningController extends Controller
                 )
                 ->get();
 
-            return apiSuccess('All data loaded.', [
-                'products' => $sales->map(fn ($row) => [
+            // Prepare the response data
+            $data['products'] = $sales->map(fn ($row) => [
                     'id' => $row->product_id,               // NULL if product missing
                     'product_code' => $row->product_code,   // ALWAYS available
                     'title' => $row->title ?? 'Unlisted Product',
@@ -42,8 +45,13 @@ class CreatorEarningController extends Controller
                     'total_conversions' => (int) $row->total_conversions,
                     'total_clicks' => 0, // clicks impossible without product
                     'total_earnings' => (float) $row->total_earnings,
-                ])
-            ]);
+                ]);
+
+            $data['wallet'] = Wallet::where('user_id', $creatorId)
+            ->select('balance','currency','status')                
+            ->first();
+
+            return apiSuccess('All data loaded.',$data);
         } catch (\Exception $e) {
             return apiError('An error occurred: ' . $e->getMessage());
         }
