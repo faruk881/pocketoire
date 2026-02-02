@@ -202,8 +202,6 @@ class commissionController extends Controller
             return apiError('This payout can no longer be modified', 409);
         }
 
-        if($request->)
-
         // Handle action
         if ($request->action === 'reject') {
 
