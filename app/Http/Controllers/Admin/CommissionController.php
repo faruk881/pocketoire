@@ -9,6 +9,8 @@ use App\Http\Requests\GlobalComissionRequest;
 use App\Http\Requests\UpdateCustomCommissionRequest;
 use App\Models\CommissionSetting;
 use App\Models\CreatorCommissionOverrides;
+use App\Models\Payout;
+use App\Models\PayoutThreshold;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -137,24 +139,122 @@ class commissionController extends Controller
             $global_commission_percent = CommissionSetting::where('active', true)->first();
 
             // Get custom commission overrides with user details
-            $custom_commission_percent = CreatorCommissionOverrides::with('user:id,name,email')->get();
-
-            // Prepare response data
-            $data['global_creator_commission_percent'] = $global_commission_percent->global_creator_commission_percent;
-            $data['custom_creator_commission'] = $custom_commission_percent?:null;
-
-            $data['creators'] = User::where('account_type', 'creator')
+            $custom_commission_percent = CreatorCommissionOverrides::select()
+                ->select('id','user_id','creator_commission_percent','effective_from','effective_to')
+                ->with('user:id,name,email')->get();
+            
+            // Get all creators with storefront and wallet details
+            $creators = User::where('account_type', 'creator')
                 ->select('id', 'name', 'email')
                 ->with('storefront:id,user_id,name')
                 ->with('wallet:id,user_id,balance,status,currency')
                 ->get()
                 ->each->append('commission_percent');
 
-            // Return response
+            $payouts = Payout::select('id','user_id','wallet_id','amount','currency','method','status','created_at')
+                ->with('user:id,name,email')
+                ->with('wallet:id,user_id,balance,status,currency')
+                ->get();
+            
+            $payouts->each(function ($payout) {
+                if ($payout->user) {
+                    $payout->user->append('commission_percent');
+                }
+            });
+
+            // $payouts = Payout::get();
+
+            // Get active payout threshold
+            $payout_threshold = PayoutThreshold::where('is_active', true)->select('id','minimum_amount','maximum_amount')->first();
+               
+            // Prepare response data
+            $data = [
+                'global_creator_commission_percent' => $global_commission_percent->global_creator_commission_percent?:null,
+                'custom_creator_commission'         => $custom_commission_percent?:null,
+                'creators'                          => $creators,
+                'payout_threshold'                  => $payout_threshold,
+                'payouts'                           => $payouts,
+            ];
+            
             return apiSuccess('Payout settings loaded.', $data);
         } catch (\Exception $e) {
             return apiError('An error occurred: ' . $e->getMessage());
         }
+    }
+
+    public function updatePayoutStatus(Request $request, $id){
+        
+        // Validate input
+        $request->validate([
+            'action' => ['required', 'in:reject,approve'],
+        ]);
+
+        // Find the payout
+        $payout = Payout::with('wallet')->find($id);
+
+        // Check if payout exists
+        if (!$payout) {
+            return apiError('Payout not found', 404);
+        }
+
+        // Prevent double handling
+        if ($payout->status !== 'requested') {
+            return apiError('This payout can no longer be modified', 409);
+        }
+
+        if($request->)
+
+        // Handle action
+        if ($request->action === 'reject') {
+
+            // Start transaction
+            DB::beginTransaction();
+
+            try {
+                // Get wallet and payout
+                $wallet = $payout->wallet;
+
+                // Refund wallet
+                WalletTransaction::create([
+                    'wallet_id'       => $wallet->id,
+                    'type'            => 'credit',
+                    'source'          => 'adjustment',
+                    'amount'          => $payout->amount,
+                    'balance_before'  => $wallet->balance,
+                    'balance_after'   => $wallet->balance + $payout->amount,
+                    'status'          => 'completed',
+                    'metadata'        => [
+                        'payout_id' => $payout->id,
+                        'reason'    => 'admin_rejected',
+                    ],
+                ]);
+
+                // Update wallet balance
+                $wallet->increment('balance', $payout->amount);
+
+                // Update payout status
+                $payout->update([
+                    'status' => 'rejected',
+                ]);
+
+                // Commit transaction
+                DB::commit();
+
+                // Return success response
+                return apiSuccess(
+                    'Payout rejected and amount refunded to wallet.',
+                    [
+                        'payout_id' => $payout->id,
+                        'status'    => $payout->status,
+                    ]
+                );
+
+            } catch (\Throwable $e) {
+                DB::rollBack();
+                return apiError('Failed to reject payout. '.$e->getMessage(), 500);
+            }
+        }
+
     }
 
     public function updateGlobalCommission(GlobalComissionRequest $request){

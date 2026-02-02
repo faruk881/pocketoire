@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payout;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Wallet;
+use App\Models\WalletTransaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CreatorEarningController extends Controller
 {
@@ -37,7 +40,7 @@ class CreatorEarningController extends Controller
                 ->get();
 
             // Prepare the response data
-            $data['products'] = $sales->map(fn ($row) => [
+            $products = $sales->map(fn ($row) => [
                     'id' => $row->product_id,               // NULL if product missing
                     'product_code' => $row->product_code,   // ALWAYS available
                     'title' => $row->title ?? 'Unlisted Product',
@@ -47,13 +50,103 @@ class CreatorEarningController extends Controller
                     'total_earnings' => (float) $row->total_earnings,
                 ]);
 
-            $data['wallet'] = Wallet::where('user_id', $creatorId)
+            $wallet = Wallet::where('user_id', $creatorId)
             ->select('balance','currency','status')                
             ->first();
 
+            $payouts = Payout::where('user_id', $creatorId)->select('id','user_id','wallet_id','amount','currency','method','status','created_at')->get();
+
+            $data = [
+                'products' => $products,
+                'wallet'   => $wallet,
+                'payouts'  => $payouts,
+            ];
             return apiSuccess('All data loaded.',$data);
         } catch (\Exception $e) {
             return apiError('An error occurred: ' . $e->getMessage());
         }
     }
+
+    public function storePayoutRequest(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'amount' => ['required', 'numeric', 'min:1'],
+        ]);
+
+        // Minimum payout amount
+        $minAmount = 50; // Minimum payout amount in USD
+
+        // Get user and wallet
+        $user   = auth()->user();
+        $wallet = $user->wallet;
+
+        // Validation checks
+        if (!$wallet || $wallet->status !== 'active') {
+            return apiError('Wallet is not active', 403);
+        }
+
+        // Check if Stripe account is onboarded
+        if (!$user->stripe_account_id || !$user->stripe_onboarded) {
+            return apiError('Stripe account not onboarded', 409);
+        }
+
+        // Check sufficient balance
+        if ($request->amount > $wallet->balance) {
+            return apiError('Insufficient wallet balance', 422);
+        }
+
+        // Check minimum payout amount
+        if( $request->amount < $minAmount ) {
+            return apiError('Minimum payout amount is '.$minAmount.' USD', 422);
+        }
+
+        // Start transaction
+        DB::beginTransaction();
+
+        try {
+            // Create payout request
+            $payout = Payout::create([
+                'user_id'      => $user->id,
+                'wallet_id'    => $wallet->id,
+                'amount'       => $request->amount,
+                'status'       => 'requested',
+                'requested_at' => now(),
+            ]);
+
+            // Lock funds (debit wallet)
+            WalletTransaction::create([
+                'wallet_id'       => $wallet->id,
+                'sale_id'         => null,
+                'type'            => 'debit',
+                'source'          => 'payout_request',
+                'amount'          => $request->amount,
+                'balance_before'  => $wallet->balance,
+                'balance_after'   => $wallet->balance - $request->amount,
+                'status'          => 'completed',
+                'metadata'        => [
+                    'payout_id' => $payout->id,
+                ],
+            ]);
+
+            // Update wallet balance
+            $wallet->decrement('balance', $request->amount);
+
+            DB::commit();
+
+            return apiSuccess(
+                'Payout request submitted successfully.',
+                [
+                    'payout_id' => $payout->id,
+                    'amount'    => $payout->amount,
+                    'status'    => $payout->status,
+                ],
+                201
+            );
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return apiError('Failed to create payout request '.$e->getMessage(), 500);
+        }
+    }   
 }

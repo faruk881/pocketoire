@@ -77,6 +77,11 @@ class User extends Authenticatable
         return $this->hasOne(Wallet::class);
     }
 
+    public function payouts()
+    {
+        return $this->hasMany(Payout::class);
+    }
+
     public function creator_comission_override()
     {
         return $this->hasOne(CreatorCommissionOverrides::class);
@@ -114,6 +119,8 @@ class User extends Authenticatable
             ->latest()
             ->value('global_creator_commission_percent') ?? 0;
     }
+
+
 
     // public function commission_percent()
     // {

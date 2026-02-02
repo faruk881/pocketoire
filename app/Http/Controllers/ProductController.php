@@ -69,7 +69,7 @@ class ProductController extends Controller
             'Accept' => 'application/json;version=2.0',
             'Content-Type' => 'application/json',
             'Accept-Language'=> 'en-US',
-        ])->post($this->baseUrl.'partner/products/search', [
+        ])->post($this->baseUrl.'/partner/products/search', [
             "filtering" => [
                 "destination" => $destination,
             ],

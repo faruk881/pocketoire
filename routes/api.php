@@ -32,8 +32,10 @@ Route::get('/terms',[SettingsController::class,'getTerms'])->name('terms.get');
 Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->name('privacy-policy.get');
 Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
-Route::get('/storefront/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
-Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
+Route::get('/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
+Route::get('/products/featured',[StorefrontController::class,'storefrontFeaturedProducts'])->name('storefront.featured.products.get');
+Route::get('/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
+Route::get('/storefront/{id}/profile',[StorefrontController::class,'storefrontPublicProfile']);
 
 // Stripe Webhook Route
 Route::post('/webhooks/stripe',[StripeWebhookController::class,'handle']);
@@ -74,7 +76,11 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::get('/vaitor-products-destination',[ProductController::class,'showVaitorProductDestination'])->name('product.showVaitorProductDestination');
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');
     Route::post('/generate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateLink');
+
+    // payment Earnings
     Route::get('/creator/earnings',[CreatorEarningController::class,'getCreatorEarnings']);
+    Route::post('/creator/payouts',[CreatorEarningController::class,'storePayoutRequest']);
+
 
 
     // Payment Payouts
@@ -98,6 +104,7 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
 
     // Payouts Management
     Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');
+    Route::patch('/admin/payouts/{id}',[commissionController::class,'updatePayoutStatus'])->name('admin.payouts.update-status');
     Route::post('/admin/global/commission/update',[commissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
     Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
     Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
