@@ -15,6 +15,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\StripeConnectController;
+use App\Http\Controllers\StripeWebhookController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -34,6 +35,8 @@ Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name(
 Route::get('/storefront/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
 Route::get('/storefront/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
 
+// Stripe Webhook Route
+Route::post('/webhooks/stripe',[StripeWebhookController::class,'handle']);
 
 // Tracking Route (Must be GET so it works as a clickable link)// * This route is in the webroute.
 // Route::get('/click/{id}', [ProductController::class, 'trackAndRedirect'])->name('product.track')->middleware('throttle:10,1');
@@ -81,28 +84,30 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
 
 // Admin Routes
 Route::middleware(['auth:sanctum','admin'])->group(function(){
-
     // Settings Management
-   Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
-   Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
-   Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
+    Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
+    Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
+    Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
 
     // Creator Management
-   Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
-   Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
-   Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
-   Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
-   Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
+    Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
+    Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
+    Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
+    Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
+    Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
 
-   // Payouts Management
-   Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');
-   Route::post('/admin/global/commission/update',[commissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
-   Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
-   Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
-   Route::get('/admin/custom/commission/add-view',[commissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
-   // Buyer Management
-   Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
-   Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');
+    // Payouts Management
+    Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');
+    Route::post('/admin/global/commission/update',[commissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
+    Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
+    Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
+    Route::get('/admin/custom/commission/add-view',[commissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
+    
+    // Buyer Management
+    Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
+    Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');
+
+
 });
 
 

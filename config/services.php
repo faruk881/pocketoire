@@ -42,6 +42,7 @@ return [
 
     'stripe' => [
         'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     ],
     'viator' => [
         'viator_api_key' => env('VIATOR_API_KEY'),

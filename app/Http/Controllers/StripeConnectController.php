@@ -20,6 +20,7 @@ class StripeConnectController extends Controller
         }
         
 
+        // Check if the user already has a Stripe account ID
         if(!$user->stripe_account_id) {
             // Create a new Stripe Express account
             try{
