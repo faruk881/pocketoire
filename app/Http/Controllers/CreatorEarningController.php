@@ -56,10 +56,13 @@ class CreatorEarningController extends Controller
 
             $payouts = Payout::where('user_id', $creatorId)->select('id','user_id','wallet_id','amount','currency','method','status','created_at')->get();
 
+            $last_payout = $payouts->sortByDesc('created_at')->first();
+
             $data = [
                 'products' => $products,
                 'wallet'   => $wallet,
                 'payouts'  => $payouts,
+                'last_payout' => $last_payout,
             ];
             return apiSuccess('All data loaded.',$data);
         } catch (\Exception $e) {
