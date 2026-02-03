@@ -7,6 +7,7 @@ use App\Http\Requests\addcommissionToCreatorRequest;
 use App\Http\Requests\CustomComissionRequest;
 use App\Http\Requests\GlobalComissionRequest;
 use App\Http\Requests\UpdateCustomCommissionRequest;
+use App\Jobs\ProcessStripePayout;
 use App\Models\CommissionSetting;
 use App\Models\CreatorCommissionOverrides;
 use App\Models\Payout;
@@ -251,6 +252,33 @@ class commissionController extends Controller
                 DB::rollBack();
                 return apiError('Failed to reject payout. '.$e->getMessage(), 500);
             }
+        }
+
+        try {
+            if ($request->action === 'approve') {
+                    if (!$payout->wallet->user->stripe_account_id) {
+                    return apiError('Creator has no Stripe account connected', 422);
+                }
+
+                if (!$payout->wallet->user->stripe_onboarded) {
+                    return apiError('Creator Stripe account is not onboarded', 422);
+                }
+
+                $payout->update([
+                    'status'       => 'approved',
+                    'approved_at'  => now(),
+                    'approved_by'  => auth()->id(),
+                ]);
+
+                ProcessStripePayout::dispatch($payout->id);
+
+                return apiSuccess('Payout approved. Ready for transfer.', [
+                    'payout_id' => $payout->id,
+                    'status'    => $payout->status,
+                ]);
+            }
+        } catch (\Exception $e) {
+            return apiError('An error occurred: ' . $e->getMessage());
         }
 
     }

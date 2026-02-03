@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payout;
 use Illuminate\Http\Request;
 use Stripe\Webhook;
 use Stripe\Event;
 use App\Models\User;
+use App\Models\WalletTransaction;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class StripeWebhookController extends Controller
@@ -43,6 +46,22 @@ class StripeWebhookController extends Controller
             case 'account.updated':
                 $this->handleAccountUpdated($event->data->object);
                 break;
+            case 'transfer.paid':
+                $this->handleTransferPaid($event->data->object);
+                break;
+
+            case 'transfer.failed':
+                $this->handleTransferFailed($event->data->object);
+                break;
+
+            case 'transfer.reversed':
+                $this->handleTransferReversed($event->data->object);
+                break;
+
+            default:
+                Log::info('Unhandled Stripe event', [
+                    'type' => $event->type
+                ]);
 
             // Add more later (transfer.paid, payout.failed, etc.)
         }
@@ -80,5 +99,90 @@ class StripeWebhookController extends Controller
                 'stripe_onboarded' => $isOnboarded,
             ]);
         }
+    }
+
+    protected function handleTransferPaid($transfer)
+    {
+        $payout = Payout::where('stripe_transfer_id', $transfer->id)->first();
+
+        if (!$payout || $payout->status === 'paid') {
+            return;
+        }
+
+        DB::transaction(function () use ($payout, $transfer) {
+            $payout->update([
+                'status'  => 'paid',
+                'paid_at'=> now(),
+            ]);
+
+            WalletTransaction::create([
+                'wallet_id'      => $payout->wallet_id,
+                'type'           => 'debit',
+                'source'         => 'sale_commission',
+                'amount'         => $payout->amount,
+                'balance_before' => $payout->balance_before,
+                'balance_after'  => $payout->balance_after,
+                'status'         => 'completed',
+                'metadata'       => [
+                    'stripe_transfer_id' => $transfer->id,
+                ],
+            ]);
+        });
+    }
+
+    protected function handleTransferFailed($transfer)
+    {
+        $payout = Payout::where('stripe_transfer_id', $transfer->id)->first();
+        if (!$payout || $payout->status === 'failed') return;
+
+        DB::transaction(function () use ($payout) {
+            $wallet = $payout->wallet;
+
+            $wallet->increment('balance', $payout->amount);
+
+            WalletTransaction::create([
+                'wallet_id'      => $wallet->id,
+                'type'           => 'credit',
+                'source'         => 'refund',
+                'amount'         => $payout->amount,
+                'balance_before' => $wallet->balance - $payout->amount,
+                'balance_after'  => $wallet->balance,
+                'status'         => 'completed',
+                'metadata'       => [
+                    'reason' => 'stripe_transfer_failed',
+                ],
+            ]);
+
+            $payout->update([
+                'status' => 'failed',
+            ]);
+        });
+    }
+    
+    protected function handleTransferReversed($transfer)
+    {
+        $payout = Payout::where('stripe_transfer_id', $transfer->id)->first();
+        if (!$payout) return;
+
+        DB::transaction(function () use ($payout) {
+            $wallet = $payout->wallet;
+
+            $wallet->increment('balance', $payout->amount);
+
+            WalletTransaction::create([
+                'wallet_id' => $wallet->id,
+                'type'      => 'credit',
+                'source'    => 'refund',
+                'amount'    => $payout->amount,
+                'status'    => 'completed',
+                'metadata'  => [
+                    'reason' => 'stripe_transfer_reversed',
+                ],
+            ]);
+
+            $payout->update([
+                'status' => 'cancelled',
+            ]);
+        });
     }
 }
