@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\commissionController;
+use App\Http\Controllers\CreatorDashboardHomeController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
@@ -76,9 +77,11 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::get('/vaitor-products-destination',[ProductController::class,'showVaitorProductDestination'])->name('product.showVaitorProductDestination');
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');
     Route::post('/generate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateLink');
+    Route::get('/creator/home',[CreatorDashboardHomeController::class,'home'])->name('creator.home');
 
     // payment Earnings
     Route::get('/creator/earnings',[CreatorEarningController::class,'getCreatorEarnings']);
+    Route::get('/creator/earnings/payouts',[CreatorEarningController::class,'getCreatorPayouts']);
     Route::post('/creator/payouts',[CreatorEarningController::class,'storePayoutRequest']);
 
 

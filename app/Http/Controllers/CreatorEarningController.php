@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +18,46 @@ class CreatorEarningController extends Controller
         try {
             // Get the authenticated creator's ID
             $creatorId = auth()->id();
+
+            // Calculate pending payouts
+            $pendingPayoutsAmounts = Payout::where('user_id', $creatorId)
+                ->whereIn('status', ['requested', 'processing'])
+                ->sum('amount');
+        
+            // Total Paid Amounts
+            $totalPaidAmounts = Payout::where('user_id', $creatorId)
+                ->where('status', 'paid')
+                ->sum('amount');
+
+            // Monthly Paid Amounts
+            $totalPaidThisMonth = Payout::where('user_id', $creatorId)
+                ->where('status', 'paid')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->sum('amount');
+
+            // Previous Months Paid Amounts
+            $totalPaidLastMonth = Payout::where('user_id', $creatorId)
+                ->where('status', 'paid')
+                ->where(function ($query) {
+                    $query->whereMonth('created_at', '<', now()->month)
+                          ->orWhereYear('created_at', '<', now()->year);
+                })
+                ->sum('amount');
+
+            // Calculate Percentage Change
+            $percentageChange = 0;
+            
+            // Avoid division by zero
+            if ($totalPaidLastMonth > 0) {
+                $percentageChange = (($totalPaidThisMonth - $totalPaidLastMonth) / $totalPaidLastMonth) * 100;
+            } elseif ($totalPaidThisMonth > 0) {
+                // If last month was 0 but this month is > 0, it's a 100% increase
+                $percentageChange = 100;
+            }
+
+            // Format to 2 decimal places
+            $percentageChange = round($percentageChange, 2);
 
             // Fetch sales data for the creator
             $sales = Sale::query()
@@ -49,25 +90,80 @@ class CreatorEarningController extends Controller
                     'total_clicks' => 0, // clicks impossible without product
                     'total_earnings' => (float) $row->total_earnings,
                 ]);
-
+            // Fetch wallet and payouts
             $wallet = Wallet::where('user_id', $creatorId)
             ->select('balance','currency','status')                
             ->first();
 
+            // Fetch payouts
             $payouts = Payout::where('user_id', $creatorId)->select('id','user_id','wallet_id','amount','currency','method','status','created_at')->get();
 
+            // Fetch last payout
             $last_payout = $payouts->sortByDesc('created_at')->first();
 
+            // Prepare the response data
             $data = [
+                'total_paid_amounts' => (float) $totalPaidAmounts,
+                'pending_payouts_amount' => (float) $pendingPayoutsAmounts,
+                'total_paid_this_month' => (float) $totalPaidThisMonth,
+                'total_paid_previous_months' => (float) $totalPaidLastMonth,
+                'monthly_payout_percentage_change' => $percentageChange,
                 'products' => $products,
                 'wallet'   => $wallet,
                 'payouts'  => $payouts,
                 'last_payout' => $last_payout,
             ];
+
+            // Return the response
             return apiSuccess('All data loaded.',$data);
         } catch (\Exception $e) {
+
+            // Log the error for debugging
             return apiError('An error occurred: ' . $e->getMessage());
         }
+    }
+    public function getCreatorPayouts(Request $request)
+    {
+        // Get the authenticated creator's ID
+        $creatorId = auth()->id();
+
+        // Base query
+        $query = Payout::where('user_id', $creatorId)
+        ->select('id', 'user_id', 'wallet_id', 'amount', 'currency', 'method', 'status', 'created_at');
+
+        // Default dates
+        $start = null;
+        $end = now()->endOfDay();
+
+        // Handle "Named" Filters
+        if ($request->filled('filter')) {
+            switch ($request->filter) {
+                case 'today':
+                    $start = now()->startOfDay();
+                    break;
+                case 'this_week':
+                    $start = now()->startOfWeek();
+                    break;
+                case 'this_month':
+                    $start = now()->startOfMonth();
+                    break;
+                case 'last_3_months':
+                    $start = now()->subMonths(3)->startOfMonth();
+                    break;
+            }
+        } 
+        // Fallback to Custom Date Range if no named filter is provided
+        elseif ($request->filled(['start_date', 'end_date'])) {
+            $start = Carbon::parse($request->start_date)->startOfDay();
+            $end = Carbon::parse($request->end_date)->endOfDay();
+        }
+
+        // Apply the filter if we have a start date
+        if ($start) {
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
+        return apiSuccess('Payouts retrieved.', $query->get());
     }
 
     public function storePayoutRequest(Request $request)

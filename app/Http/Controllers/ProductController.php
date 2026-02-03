@@ -322,7 +322,7 @@ class ProductController extends Controller
                 'exp-api-key' => $this->apiKey,
                 'Accept-Language' => 'en-US',
                 'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/products/{$productCode}");
+            ])->get("{$this->baseUrl}/partner/products/{$productCode}");
 
             // 2. Fetch Pricing Schedule (Lowest Price)
             $priceResponse = Http::withHeaders([

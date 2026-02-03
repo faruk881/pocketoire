@@ -18,6 +18,17 @@ class CreatorProfileController extends Controller
         ]);
     }
 
+    public function home(){
+
+        $creator_id = auth()->id();
+        $storefront = auth()->user()->storefront;
+
+        // $total_products = User::where('id', $creator_id)
+        //     ->with(['storefront.products'])->get();
+
+        return apiSuccess('data loaded',$storefront);
+    }
+
     public function update(UpdateCreatorProfileRequest $request){
         $user = auth()->user();
 
