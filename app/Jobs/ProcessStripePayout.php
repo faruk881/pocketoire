@@ -11,104 +11,143 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Stripe\Exception\InvalidRequestException;
+use Stripe\Exception\ApiErrorException;
 use Stripe\Stripe;
 use Stripe\Transfer;
+use Stripe\Payout as StripePayout;
 
 class ProcessStripePayout implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    // The ID of the payout to process
     public int $payoutId;
 
     public function __construct(int $payoutId)
     {
+        // Set the payout ID
         $this->payoutId = $payoutId;
     }
 
     public function handle(): void
     {
-        Log::info("STARTED");
-        $payout = Payout::with('wallet.user')->findOrFail($this->payoutId);
-        $wallet = $payout->wallet;
+        Log::info('Stripe payout job started', ['payout_id' => $this->payoutId]);
+
+        // Load payout with related wallet and user
+        $payout  = Payout::with('wallet.user')->findOrFail($this->payoutId);
+        $wallet  = $payout->wallet;
         $creator = $wallet->user;
 
-        // Guard: already processed
-        if (in_array($payout->status, ['sent', 'completed'])) {
-            Log::info('Payout already processed', ['payout_id' => $payout->id]);
+        // Only process if payout is in 'approved' state
+        if (in_array($payout->status, ['processing', 'completed'])) {
+            Log::info('Payout already handled', ['payout_id' => $payout->id]);
             return;
         }
 
-        // Guard: missing Stripe account
+        // Ensure creator has a connected Stripe account
         if (!$creator->stripe_account_id) {
-            $this->markPayoutFailed(
-                $payout,
-                'Creator has no connected Stripe account.'
-            );
+            $this->markPayoutFailed($payout, 'Creator has no connected Stripe account.');
             return;
         }
 
+        // Set Stripe API key
         Stripe::setApiKey(config('services.stripe.secret'));
-        $balance = \Stripe\Balance::retrieve();
-
-        Log::info('Stripe balance', $balance->toArray());
-        Log::info('Payout currency', ['currency' => $payout->currency]);
 
         try {
             /**
-             * 1️⃣ Create Stripe transfer (NO DB transaction here)
+             * 1️⃣ TRANSFER: Platform → Creator Stripe balance
              */
-            $transfer = Transfer::create(
-                [
-                    'amount'      => (int) round($payout->amount),
-                    'currency'    => strtolower($payout->currency),
-                    'destination' => $creator->stripe_account_id,
-                    'metadata'    => [
-                        'payout_id' => $payout->id,
-                        'user_id'   => $creator->id,
+            if (!$payout->transfer_id) {
+                $transfer = Transfer::create(
+                    [
+                        'amount'      => (int) round($payout->amount * 100),
+                        'currency'    => strtolower($payout->currency),
+                        'destination' => $creator->stripe_account_id,
+                        'metadata'    => [
+                            'payout_id' => $payout->id,
+                            'user_id'   => $creator->id,
+                        ],
                     ],
-                ],
-                [
-                    // Prevent duplicate payouts
-                    'idempotency_key' => 'payout_' . $payout->id,
-                ]
-            );
-
-            /**
-             * 2️⃣ Update DB state atomically
-             */
-            DB::transaction(function () use ($payout, $transfer) {
-                $payout->update([
-                    'status'              => 'processing', 
-                    'external_reference'  => $transfer->id,
-                ]);
-            });
-
-            Log::info('Stripe transfer created successfully', [
-                'payout_id'   => $payout->id,
-                'transfer_id' => $transfer->id,
-            ]);
-
-        } catch (InvalidRequestException $e) {
-
-            // Insufficient Stripe balance → refund wallet
-            if ($e->getStripeCode() === 'balance_insufficient') {
-
-                Log::warning('Stripe payout failed: insufficient funds', [
-                    'payout_id'  => $payout->id,
-                    'stripe_msg' => $e->getMessage(),
-                ]);
-
-                $this->markPayoutFailed(
-                    $payout,
-                    'Insufficient platform balance. Payout will be retried later.'
+                    [
+                        'idempotency_key' => 'transfer_' . $payout->id,
+                    ]
                 );
 
-                // Do NOT retry
+                $payout->update([
+                    'transfer_id' => $transfer->id,
+                    'status'      => 'funded',
+                ]);
+
+                Log::info('Stripe transfer created', [
+                    'payout_id'   => $payout->id,
+                    'transfer_id' => $transfer->id,
+                ]);
+            }
+
+            /**
+             * 2️⃣ PAYOUT: Creator Stripe → Creator bank
+             */
+            if (!$payout->stripe_payout_id) {
+                $stripePayout = StripePayout::create(
+                    [
+                        'amount'   => (int) round($payout->amount * 100),
+                        'currency' => strtolower($payout->currency),
+                    ],
+                    [
+                        'stripe_account'  => $creator->stripe_account_id,
+                        'idempotency_key' => 'creator_payout_' . $payout->id,
+                    ]
+                );
+
+                $payout->update([
+                    'stripe_payout_id' => $stripePayout->id,
+                    'status'           => 'processing',
+                ]);
+
+                Log::info('Stripe payout created', [
+                    'payout_id'        => $payout->id,
+                    'stripe_payout_id' => $stripePayout->id,
+                ]);
+            }
+
+        } catch (ApiErrorException $e) {
+            // Log the Stripe error
+            Log::error('Stripe error during payout', [
+                'payout_id' => $payout->id,
+                'type'      => get_class($e),
+                'code'      => $e->getStripeCode(),
+                'message'   => $e->getMessage(),
+            ]);
+
+            /**
+             * Insufficient platform balance → refund wallet, do NOT retry
+             */
+            if ($e->getStripeCode() === 'balance_insufficient') {
+                $this->markPayoutFailed(
+                    $payout,
+                    'Insufficient platform balance. Payout will retry later.'
+                );
                 return;
             }
 
-            // Other Stripe errors → retry job
+            /**
+             * Creator payout not enabled / bank issue → fail
+             */
+            if (in_array($e->getStripeCode(), [
+                'payouts_not_enabled',
+                'account_invalid',
+                'bank_account_unverified',
+            ])) {
+                $this->markPayoutFailed(
+                    $payout,
+                    'Creator payout is not available. Please complete Stripe onboarding.'
+                );
+                return;
+            }
+
+            /**
+             * Unknown Stripe error → retry job
+             */
             throw $e;
         }
     }
@@ -123,14 +162,14 @@ class ProcessStripePayout implements ShouldQueue
             $wallet = $payout->wallet;
 
             WalletTransaction::create([
-                'wallet_id'       => $wallet->id,
-                'type'            => 'credit',
-                'source'          => 'payout_failed',
-                'amount'          => $payout->amount,
-                'balance_before'  => $wallet->balance,
-                'balance_after'   => $wallet->balance + $payout->amount,
-                'status'          => 'completed',
-                'metadata'        => [
+                'wallet_id'      => $wallet->id,
+                'type'           => 'credit',
+                'source'         => 'payout_failed',
+                'amount'         => $payout->amount,
+                'balance_before' => $wallet->balance,
+                'balance_after'  => $wallet->balance + $payout->amount,
+                'status'         => 'completed',
+                'metadata'       => [
                     'payout_id' => $payout->id,
                     'reason'    => 'stripe_failure',
                 ],

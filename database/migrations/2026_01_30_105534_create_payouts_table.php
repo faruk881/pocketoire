@@ -20,9 +20,10 @@ return new class extends Migration
             $table->string('currency', 3)->default('USD');
 
             $table->enum('method', ['stripe', 'paypal', 'bank']);
-            $table->enum('status', ['requested','approved','processing','paid','failed','cancelled','rejected'])->default('requested');
+            $table->enum('status', ['requested','approved','processing','paid','failed','cancelled','rejected','funded'])->default('requested');
 
-            $table->string('external_reference')->nullable(); // Stripe transfer ID etc.
+            $table->string('stripe_payout_id')->nullable();
+            $table->string('external_reference')->nullable(); 
             $table->text('failure_reason')->nullable();
 
             // Audit

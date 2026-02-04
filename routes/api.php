@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\commissionController;
+use App\Http\Controllers\AdminDashboardStatsController;
 use App\Http\Controllers\CreatorDashboardHomeController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
@@ -84,8 +85,6 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::get('/creator/earnings/payouts',[CreatorEarningController::class,'getCreatorPayouts']);
     Route::post('/creator/payouts',[CreatorEarningController::class,'storePayoutRequest']);
 
-
-
     // Payment Payouts
     Route::post('/stripe/connect/onboard',[StripeConnectController::class,'stripeOnboard'])->name('creator.stripe.onboard');
 
@@ -93,6 +92,8 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
 
 // Admin Routes
 Route::middleware(['auth:sanctum','admin'])->group(function(){
+    Route::get('/admin/dashboard-stats',[AdminDashboardStatsController::class,'index'])->name('admin.dashboard.stats');
+
     // Settings Management
     Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
     Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
