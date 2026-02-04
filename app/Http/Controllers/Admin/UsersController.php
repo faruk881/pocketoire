@@ -7,8 +7,11 @@ use App\Http\Requests\UpdateCreatorRequest;
 use App\Http\Requests\UpdateCreatorStatusRequest;
 use App\Http\Requests\UpdateCreatorStorefrontStatusRequest;
 use App\Http\Requests\UpdateUserStatusRequest;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class UsersController extends Controller
 {
@@ -21,11 +24,65 @@ class UsersController extends Controller
             // Pagination size with limits
             $paginate = min(max((int) $request->query('per_page', 10), 1), 100);
 
-            // Base query
-            $query = User::where('account_type', $role)
-                ->select(['id', 'name', 'email', 'status', 'created_at'])
-                ->with('storefront:id,user_id,name,slug,status');
+            // Subqueries for clicks
+            $clicksSub = DB::table('products')
+                ->join('product_clicks', 'product_clicks.product_id', '=', 'products.id')
+                ->select(
+                    'products.user_id',
+                    DB::raw('COUNT(product_clicks.id) as total_clicks')
+                )
+                ->groupBy('products.user_id');
 
+            // Subqueries for commissions
+            $commissionSub = DB::table('wallets')
+                ->join('wallet_transactions', function ($join) {
+                    $join->on('wallet_transactions.wallet_id', '=', 'wallets.id')
+                        ->where('wallet_transactions.source', 'sale_commission')
+                        ->where('wallet_transactions.type', 'credit')
+                        ->where('wallet_transactions.status', 'completed');
+                })
+                ->select(
+                    'wallets.user_id',
+                    DB::raw('SUM(wallet_transactions.amount) as total_commission')
+                )
+                ->groupBy('wallets.user_id');
+
+            if($role === 'creator') {
+                // Query results
+                $query = User::query()
+                    ->where('users.account_type', $role)
+
+                    ->leftJoinSub($clicksSub, 'clicks', function ($join) {
+                        $join->on('clicks.user_id', '=', 'users.id');
+                    })
+                    ->leftJoinSub($commissionSub, 'commissions', function ($join) {
+                        $join->on('commissions.user_id', '=', 'users.id');
+                    })
+
+                    ->select([
+                        'users.id',
+                        'users.name',
+                        'users.email',
+                        'users.status',
+                        'users.created_at',
+                        DB::raw('COALESCE(clicks.total_clicks, 0) as total_clicks'),
+                        DB::raw('COALESCE(commissions.total_commission, 0) as total_commission'),
+                    ])
+                    ->with('storefront:id,user_id,name,slug,status');
+            }
+
+            if($role === 'buyer') {
+                    $query = User::query()
+                    ->where('users.account_type', $role)
+
+                    ->select([
+                        'users.id',
+                        'users.name',
+                        'users.email',
+                        'users.status',
+                        'users.created_at',
+                    ]);
+            }
             // Search by keywords (user + users storefront)
             if ($request->filled('keywords')) {
                 $keywords = $request->keywords;
@@ -64,6 +121,53 @@ class UsersController extends Controller
             // Handle errors
             return apiError($e->getMessage());
         }
+    }
+
+    public function getBuyers(){
+
+    }
+
+    public function getProfile(Request $request, $id) {
+        // Get the role from routes default method
+        $role = $request->route('role'); 
+
+        // Get users
+        $user = User::where('id',$id)
+            ->select('id','name','email','account_type','created_at','profile_photo','cover_photo','status')
+            ->with('storefront:id,user_id,name,slug,bio')
+            ->first();
+        
+        // Check if user exists
+        if(!$user){
+            return apiError(ucfirst($role).' User not found',404);
+        }
+
+        // Get Products
+        $products = Product::where('storefront_id', $user->storefront->id)
+            ->with('first_image')
+            ->withCount('clicks')
+            ->withCount('sales')
+            ->withSum('sales','creator_commission')
+            ->select('id','title','description','product_link','price')
+            ->paginate(4);
+
+        // Generates: http://yoursite.com/api/click/4
+        $products->getCollection()->transform(function ($product) {
+            $product->product_link = route('product.track', ['id' => $product->id]);
+            return $product;
+        });
+
+        $total_products = $products->count();
+        //Prepare the data
+        $data = [
+            'user' => $user,
+            'products' => $products,
+            'total_products' => $total_products,
+        ];
+
+
+        // return the results
+        return apiSuccess(ucfirst($role).' Profile retrieved successfully.', $data);
     }
 
     public function updateUserStatus(UpdateUserStatusRequest $request, $id) {
@@ -135,5 +239,43 @@ class UsersController extends Controller
             // Handle other errors
             return apiError($e->getMessage());
         }
+    }
+
+    public function deleteProfile($id) {
+        try {
+                    // Check if the user is an admin
+            if(auth()->user()->account_type !== 'admin') {
+                return apiError('You are not authorized to perform this action.', 403);
+            }
+
+            // Get the user
+            $user = User::find($id);
+
+            // Check if user exists
+            if (!$user) {
+                return apiError('User not found', 404);
+            }  
+
+            // Delete profile photo if exists
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+
+            // Delete cover photo if exists
+            if ($user->cover_photo && Storage::disk('public')->exists($user->cover_photo)) {
+                Storage::disk('public')->delete($user->cover_photo);
+            }
+            
+            // Delete the user
+            $user->delete();
+
+            // Return the success message
+            return apiSuccess('User deleted successfully.');
+
+        } catch (\Throwable $e) {
+            // Handle errors
+            return apiError($e->getMessage());
+        }
+
     }
 }       

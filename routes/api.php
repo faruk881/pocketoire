@@ -93,6 +93,7 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
 // Admin Routes
 Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::get('/admin/dashboard-stats',[AdminDashboardStatsController::class,'index'])->name('admin.dashboard.stats');
+    Route::get('/admin/dashboard-reports',[AdminDashboardStatsController::class,'reports'])->name('admin.dashboard.reports');
 
     // Settings Management
     Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
@@ -101,7 +102,11 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
 
     // Creator Management
     Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
+    Route::get('/admin/creator/{id}',[UsersController::class,'getProfile'])->defaults('role','creator')->name('admin.creator.show');
     Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
+    Route::delete('/admin/creator/{id}/delete',[UsersController::class,'deleteProfile'])->defaults('role','creator')->name('admin.creator.delete');
+    
+    
     Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
     Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
     Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
