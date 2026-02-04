@@ -272,7 +272,7 @@ class commissionController extends Controller
 
                 ProcessStripePayout::dispatch($payout->id);
 
-                return apiSuccess('Payout approved. Ready for transfer.', [
+                return apiSuccess('Payout approved. Processing for transfer.', [
                     'payout_id' => $payout->id,
                     'status'    => $payout->status,
                 ]);
