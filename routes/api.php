@@ -6,6 +6,7 @@ use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\commissionController;
 use App\Http\Controllers\AdminDashboardStatsController;
+use App\Http\Controllers\AdminProductModerationController;
 use App\Http\Controllers\CreatorDashboardHomeController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
@@ -104,7 +105,7 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
     Route::get('/admin/creator/{id}',[UsersController::class,'getProfile'])->defaults('role','creator')->name('admin.creator.show');
     Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
-    Route::delete('/admin/creator/{id}/delete',[UsersController::class,'deleteProfile'])->defaults('role','creator')->name('admin.creator.delete');
+    Route::delete('/admin/user/{id}/delete',[UsersController::class,'deleteProfile'])->name('admin.creator.delete');
     
     
     Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
@@ -123,6 +124,9 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
     Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');
 
+    // Content
+    Route::get('/admin/products',[AdminProductModerationController::class,'getProducts']);
+    Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'getUpdateProductStatus']);
 
 });
 
