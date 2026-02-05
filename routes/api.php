@@ -23,9 +23,14 @@ use Illuminate\Support\Facades\Route;
 
 // Auth routes
 Route::post('/auth/register',[RegisterController::class,'register'])->name('auth.register');
+
 Route::post('/auth/login',[AuthController::class,'login'])->name('auth.login');
 Route::post('/auth/logout',[AuthController::class,'logout'])->name('auth.logout')->middleware('auth:sanctum');
-Route::post('/auth/google',[SocialAuthController::class,'googleAuth'])->name('auth.google');
+
+// Route::post('/auth/google',[SocialAuthController::class,'googleAuth'])->name('auth.google');
+
+Route::get('/auth/google/url', [SocialAuthController::class, 'loginUrl']);
+Route::get('/auth/google/callback', [socialAuthController::class, 'callback']);
 
 
 // Public Routes
