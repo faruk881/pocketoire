@@ -168,7 +168,7 @@ class ProductController extends Controller
         $productLink = $request->product_link;
         // Check if product exists
         $viatorProductCode = $this->extractViatorProductId($productLink);
-        if (Product::where('vaitor_product_code', $viatorProductCode)->exists()) {
+        if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
             return apiError('This product already exists.', 409);
         }
 
@@ -220,7 +220,7 @@ class ProductController extends Controller
                 'price'        => $priceData['summary']['fromPrice'] ?? null,
                 'currency'     => $priceData['currency'] ?? 'USD',
                 'product_link' => $productLink,
-                'vaitor_product_code' => $viatorProductCode,
+                'viator_product_code' => $viatorProductCode,
             ]);
         } catch(\Throwable $e){
             return apiError($e->getMessage());
@@ -293,7 +293,7 @@ class ProductController extends Controller
                 'price'        => $priceData['summary']['fromPrice'] ?? null,
                 'currency'     => $priceData['currency'] ?? 'USD',
                 'product_link' => $productLink,
-                'vaitor_product_code' => $viatorProductCode,
+                'viator_product_code' => $viatorProductCode,
             ]);
         } catch(\Throwable $e){
             return apiError($e->getMessage());

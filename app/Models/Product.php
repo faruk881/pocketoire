@@ -23,7 +23,7 @@ class Product extends Model
         return $this->hasMany(ProductImage::class);
     }
 
-    public function albums() {
+    public function album() {
         return $this->belongsTo(Album::class);
     }
 

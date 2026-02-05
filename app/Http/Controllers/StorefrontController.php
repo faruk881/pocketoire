@@ -266,11 +266,6 @@ class StorefrontController extends Controller
                 // Transform: Add Link & Ensure Clicks are visible
                 $products->getCollection()->transform(function ($product) {
                     $product->product_link = route('product.track', ['id' => $product->id]);
-                    
-                    // The 'total_clicks' column is already in the database, 
-                    // so $product->total_clicks is automatically sent to the frontend.
-                    // We don't need to do anything extra here!
-                    
                     return $product;
                 });
 

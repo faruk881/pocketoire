@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\Storefront;
+use App\Models\User;
 use Illuminate\Auth\Events\Validated;
 use Illuminate\Http\Request;
 
@@ -42,7 +44,56 @@ class AdminProductModerationController extends Controller
 
     }
 
-    public function UpdateProductStatus(Request $request, $id)
+    public function viewProduct($id){
+        try{
+            // Get the product
+            // $product = Product::where('id',$id)
+            $product = Product::select('id','user_id','storefront_id','album_id','title','description','price','product_link','status','created_at')
+            ->with('album:id,name')
+            ->with('user:id,name,profile_photo,cover_photo')
+            ->with('first_image')->find($id);
+            $product->original_link = $product->product_link;
+            $product->product_link = route('product.track', ['id' => $product->id]);
+
+            // Check if product exists
+            if (!$product) {
+                return apiError('Product not found.', 404);
+            }
+
+            // Get storefront id
+            $storefront_id = Product::find($id)->storefront->id;
+            $creator_id = Product::find($id)->user->id;
+
+
+            // Get storefront count
+            $storefront_count = Product::where('storefront_id', $storefront_id)
+                    ->selectRaw('
+                        COUNT(*) as total,
+                        SUM(status = "approved") as approved,
+                        SUM(status = "rejected") as rejected,
+                        SUM(status = "flagged") as flagged,
+                        SUM(status = "pending") as pending
+                    ')
+                    ->first();
+
+
+            // Prepare data
+            $data = [
+                'storefront_count' => $storefront_count,
+                'creator_id' => $creator_id,
+                'product' => $product
+            ];
+
+            // Return the message
+            return apiSuccess('Product retrieved successfully.', $data);
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+    }
+
+    public function updateProductStatus(Request $request, $id)
     {
         try{
             // Get requests
@@ -78,6 +129,28 @@ class AdminProductModerationController extends Controller
 
             // Return the message
             return apiSuccess('Product status updated successfully.', $product->status);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+    }
+
+    public function deleteProduct($id)
+    {
+        try{
+            // Get product
+            $product = Product::find($id);
+
+            // Check if product presents
+            if (!$product) {
+                return apiError('Product not found.', 404);
+            }
+
+            // Delete product
+            $product->delete();
+
+            // Return the message
+            return apiSuccess('Product deleted successfully.', $product);
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
         }

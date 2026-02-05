@@ -103,7 +103,7 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
 
     // Creator Management
     Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');
-    Route::get('/admin/creator/{id}',[UsersController::class,'getProfile'])->defaults('role','creator')->name('admin.creator.show');
+    Route::get('/admin/creators/{id}',[UsersController::class,'getProfile'])->defaults('role','creator')->name('admin.creator.show');
     Route::patch('/admin/creator/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','creator')->name('admin.creator.update-status');
     Route::delete('/admin/user/{id}/delete',[UsersController::class,'deleteProfile'])->name('admin.creator.delete');
     
@@ -127,7 +127,9 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     // Content
     Route::get('/admin/products',[AdminProductModerationController::class,'getProducts']);
     Route::get('/admin/products/{id}',[AdminProductModerationController::class,'viewProduct']);
-    Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'UpdateProductStatus']);
+    Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'updateProductStatus']);
+    Route::delete('/admin/products/{id}',[AdminProductModerationController::class,'deleteProduct']);
+
 
 });
 
