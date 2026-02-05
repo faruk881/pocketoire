@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
+            $table->boolean('is_commissioned')->default(false)->index();
             $table->string('product_code')->nullable();
             $table->string('booking_ref')->index();
             $table->string('transaction_ref')->unique();

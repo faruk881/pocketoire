@@ -23,7 +23,7 @@ class addcommissionToCreatorRequest extends FormRequest
     {
         return [
             'platform_commission' => ['required', 'numeric', 'min:0'],
-            'creator_commission_percent'   => ['required', 'numeric', 'between:0,100'],
+            // 'creator_commission_percent'   => ['required', 'numeric', 'between:0,100'],
         ];
     }
 
@@ -35,9 +35,9 @@ class addcommissionToCreatorRequest extends FormRequest
             'platform_commission.numeric'  => 'Platform commission must be a number.',
             'platform_commission.min'      => 'Platform commission cannot be negative.',
 
-            'creator_commission_percent.required'   => 'Creator Commission percent is required.',
-            'creator_commission_percent.numeric'    => 'Creator Commission percent must be a number.',
-            'creator_commission_percent.between'    => 'Creator Commission percent must be between 0 and 100.',
+            // 'creator_commission_percent.required'   => 'Creator Commission percent is required.',
+            // 'creator_commission_percent.numeric'    => 'Creator Commission percent must be a number.',
+            // 'creator_commission_percent.between'    => 'Creator Commission percent must be between 0 and 100.',
         ];
     }
 }

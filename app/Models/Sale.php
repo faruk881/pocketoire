@@ -8,6 +8,10 @@ class Sale extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'is_commissioned' => 'boolean',
+    ];
+
     public function product(){
         return $this->belongsTo(Product::class);
     }

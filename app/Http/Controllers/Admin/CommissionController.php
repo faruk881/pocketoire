@@ -23,9 +23,18 @@ class commissionController extends Controller
 {
     public function addCreatorcommission(addcommissionToCreatorRequest $request)
     {
-        DB::beginTransaction();
+        
         try {
+            // Get Sale
             $sale = Sale::find($request->id);
+
+            if($sale->is_commissioned) {
+                return apiError('Commission already added.');
+            } 
+            // Start Transaction
+            DB::beginTransaction();
+
+            // Check if sale exists
             if (!$sale) {
                 return apiError('Sale not found', 404);
             }
@@ -35,12 +44,24 @@ class commissionController extends Controller
                 return apiError('Operation not supported for this sale');
             }
 
+            // Get platform commission amount 
             $platformCommission = round((float) $request->platform_commission, 2);
-            $percent            = (float) $request->creator_commission_percent;
+
+            // Get Commission percent.
+            // If user has custom commission percent then it will use it.
+            // Otherwise it will use global commission percent.
+            $percent = (float) (
+                CreatorCommissionOverrides::where('user_id', $sale->user_id)
+                    ->value('creator_commission_percent')
+                ?? CommissionSetting::value('global_creator_commission_percent')
+            );
+
+            // Calculate Creator Commission
             $creatorCommission = round(($platformCommission * $percent) / 100,2);
 
-                    // Save commission values
+            // Save commission values
             $sale->update([
+                'is_commissioned'             => true,
                 'platform_commission'        => $platformCommission,
                 'creator_commission_percent' => $percent,
                 'creator_commission'         => $creatorCommission,
@@ -51,12 +72,15 @@ class commissionController extends Controller
              */
             if ($sale->user && $creatorCommission > 0 && !$sale->wallet_credited_at) {
 
+                // Get wallet
                 $wallet = $sale->user->wallet;
 
+                // Check if wallet exists
                 if (!$wallet || $wallet->status !== 'active') {
                     throw new \Exception('Creator wallet not available');
                 }
 
+                // Get commission before and after
                 $balanceBefore = $wallet->balance;
                 $balanceAfter  = $balanceBefore + $creatorCommission;
 
@@ -86,8 +110,11 @@ class commissionController extends Controller
                     'wallet_credited_at' => now(),
                 ]);
             }
+
+            // If there is no error then commit
             DB::commit();
 
+            // Return message
             return apiSuccess(
                 'Commission updated successfully.',
                 [
@@ -97,17 +124,27 @@ class commissionController extends Controller
                     'creator_commission'   => $sale->creator_commission,
                 ]
             );
+
         } catch (\Exception $e) {
+            // If there is exception then roll back
             DB::rollBack();
+            // Return the error message
             return apiError('An error occurred: ' . $e->getMessage());
         }
     }
 
     public function viewCreatorcommission(Request $request){
         try{
+            // Paginate
             $perPage  = $request->get('per_page', 10);
-            $latestSaleIds = Sale::selectRaw('MAX(id)')
-            ->groupBy('booking_ref');
+
+            // Get latest sales. 
+            // There may multiple bookings with same booking_ref numbers 
+            // For example: confirmed, then edited, then cencelled).
+            // We will get only the latest event 
+            $latestSaleIds = Sale::selectRaw('MAX(id)')->groupBy('booking_ref');
+
+            // Get The Sales Data
             $sales = Sale::select('id',
                                 'product_id',
                                 'user_id',
@@ -122,12 +159,13 @@ class commissionController extends Controller
                                 ->with(['product:id,title',
                                         'user' => function($query) {
                                             $query->select('id', 'name', 'email')
-                                                ->with('storefront:id,user_id,name'); // Change 'name' to your actual column like 'store_name'
+                                                ->with('storefront:id,user_id,name');
                                             }
                                         ])
                                 ->latest('id')
                                 ->paginate($perPage);
 
+            // return sales
             return apiSuccess('All commissions loaded.', ['sales' => $sales]);
         } catch (\Exception $e) {
             return apiError('An error occurred: ' . $e->getMessage());
