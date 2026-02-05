@@ -22,7 +22,7 @@ return new class extends Migration
             $table->string('currency', 3)->ulllable();
             $table->string('product_link');
             $table->string('viator_product_code')->nullable();
-            $table->enum('status',['approved','rejected','flagged','pending'])->default('approved');
+            $table->enum('status',['approved','rejected','flagged','pending'])->default('pending');
             $table->timestamps();
         });
     }
