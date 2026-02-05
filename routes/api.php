@@ -126,7 +126,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
 
     // Content
     Route::get('/admin/products',[AdminProductModerationController::class,'getProducts']);
-    Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'getUpdateProductStatus']);
+    Route::get('/admin/products/{id}',[AdminProductModerationController::class,'viewProduct']);
+    Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'UpdateProductStatus']);
 
 });
 
