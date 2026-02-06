@@ -24,6 +24,7 @@ class StoreProductRequest extends FormRequest
         return [
             'album_id' => ['required', 'integer', 'exists:albums,id'],
             'product_link' => ['required', 'url', 'regex:/viator\.com\/.*\/(?:d\d+-|p-)[^\/\?]+/'],
+            'image' => ['nullable','image','mimes:jpg,jpeg,png,webp','max:4096',],
         ];
     }
 
@@ -39,6 +40,11 @@ class StoreProductRequest extends FormRequest
             'product_link.required' => 'Product link is required.',
             'product_link.url'      => 'Product link must be a valid URL.',
             'product_link.regex'    => 'Please provide a valid Viator product link.',
+
+            // image messages
+            'image.image' => 'Cover photo must be a valid image.',
+            'image.mimes' => 'Cover photo must be a JPG, PNG, or WEBP image.',
+            'image.max' => 'Cover photo size must not exceed 4MB.',
         ];
     }
 }

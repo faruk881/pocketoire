@@ -190,17 +190,15 @@ class ProductController extends Controller
             return apiError($e->getMessage());
         }
 
+        // Get product details
         $content = $contentResponse->json();
+
+        // Get product price details
         $priceData = $priceResponse->json();
-        
-        // Get one highest resulation image if found
-        $imageUrls = collect($content['images'] ?? [])
-        ->pluck('variants') // Get all variant arrays
-        ->collapse()        // Merge them into one long list of variants
-        ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
-        ->first()['url'] ?? null; //Get the image or set it null.
 
         try{
+
+            // Save details to database
             $product = Product::create([
                 'user_id' => auth()->user()->id,
                 'storefront_id' => auth()->user()->storefront->id,
@@ -215,16 +213,39 @@ class ProductController extends Controller
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
-           
 
+        // Check if there is image
+        try{
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
 
-        ProductImage::create([
-            'product_id' => $product->id,
-            'image' => $imageUrls,
-            'source' => 'viator',
-        ]);
+                // Save the image to storage and get the path.
+                $path = $request->file('image')->store('product_images', 'public');
 
+                // Save the image to database
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image'      => $path,
+                    'source'     => 'upload',
+                ]);
+            } else {
 
+                // Get one highest resulation image if found
+                $imageUrls = collect($content['images'] ?? [])
+                ->pluck('variants') // Get all variant arrays
+                ->collapse()        // Merge them into one long list of variants
+                ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0)) // Get the largest image
+                ->first()['url'] ?? null; //Get the image or set it null.
+
+                // Save the image to database
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image' => $imageUrls,
+                    'source' => 'viator',
+                ]);
+            }
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
 
         return apiSuccess('The product inserted successfully.', $product);
 

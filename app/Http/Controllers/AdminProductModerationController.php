@@ -145,8 +145,10 @@ class AdminProductModerationController extends Controller
             if (!$product) {
                 return apiError('Product not found.', 404);
             }
-
             // Delete product
+            foreach ($product->product_images as $image) {
+                $image->delete(); // auto deletes file
+            }
             $product->delete();
 
             // Return the message
