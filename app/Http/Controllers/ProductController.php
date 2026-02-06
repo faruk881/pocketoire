@@ -166,6 +166,7 @@ class ProductController extends Controller
         
         // Get the product link
         $productLink = $request->product_link;
+
         // Check if product exists
         $viatorProductCode = $this->extractViatorProductId($productLink);
         if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
@@ -189,26 +190,15 @@ class ProductController extends Controller
             return apiError($e->getMessage());
         }
 
-        // if ($contentResponse->failed() || $priceResponse->failed()) {
-        //     return response()->json(['error' => 'Could not fetch product data'.$productCode], 404);
-        // }
-
-        // P
         $content = $contentResponse->json();
         $priceData = $priceResponse->json();
         
-
-        $imageUrls = [];
-        if (!empty($content['images'])) {
-            // Use array_slice to get only the first 5 images
-            $imagesToProcess = array_slice($content['images'], 0, 5);
-            
-            foreach ($imagesToProcess as $image) {
-                // Collect high-res variant if available
-                $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
-            }
-        }
-     
+        // Get one highest resulation image if found
+        $imageUrls = collect($content['images'] ?? [])
+        ->pluck('variants') // Get all variant arrays
+        ->collapse()        // Merge them into one long list of variants
+        ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+        ->first()['url'] ?? null; //Get the image or set it null.
 
         try{
             $product = Product::create([
@@ -227,13 +217,13 @@ class ProductController extends Controller
         }
            
 
-        foreach ($imageUrls as $url) {
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image' => $url,
-                'source' => 'viator',
-            ]);
-        }
+
+        ProductImage::create([
+            'product_id' => $product->id,
+            'image' => $imageUrls,
+            'source' => 'viator',
+        ]);
+
 
 
         return apiSuccess('The product inserted successfully.', $product);
@@ -340,16 +330,24 @@ class ProductController extends Controller
         $content = $contentResponse->json();
         $priceData = $priceResponse->json();
 
-        $imageUrls = [];
-        if (!empty($content['images'])) {
-            // Use array_slice to get only the first 5 images
-            $imagesToProcess = array_slice($content['images'], 0, 5);
+        // $imageUrls = [];
+        // if (!empty($content['images'])) {
+        //     // Use array_slice to get only the first 5 images
+        //     $imagesToProcess = array_slice($content['images'], 0, 5);
             
-            foreach ($imagesToProcess as $image) {
-                // Collect high-res variant if available
-                $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
-            }
-        }
+        //     foreach ($imagesToProcess as $image) {
+        //         // Collect high-res variant if available
+        //         $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
+        //     }
+        // }
+
+        $imageUrls = [];
+
+        $imageUrls = collect($content['images'] ?? [])
+            ->pluck('variants') // Get all variant arrays
+            ->collapse()        // Merge them into one long list of variants
+            ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+            ->first()['url'] ?? null;
 
         // Extracting only the data you requested
         return response()->json([
@@ -359,6 +357,7 @@ class ProductController extends Controller
             'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
             'currency'     => $priceData['currency'] ?? 'USD',
             'image_url'    => $imageUrls,
+            'all_images'   => $content['images'],
         ]);
     }
 
