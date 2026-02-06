@@ -485,7 +485,7 @@ class StorefrontController extends Controller
             $product = Product::with([
                 'storefront:id,user_id,name,bio',
                 'storefront.user:id,name,profile_photo,cover_photo',
-                'first_image:id,product_images.product_id,image,source' 
+                'product_image:id,product_images.product_id,image,source' 
             ])->find($id);
 
             // Check if product presents

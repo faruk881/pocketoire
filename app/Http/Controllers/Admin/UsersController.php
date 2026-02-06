@@ -144,7 +144,7 @@ class UsersController extends Controller
 
         // Get Products
         $products = Product::where('storefront_id', $user->storefront->id)
-            ->with('first_image')
+            ->with('product_image')
             ->withCount('clicks')
             ->withCount('sales')
             ->withSum('sales','creator_commission')

@@ -22,7 +22,7 @@ class AdminProductModerationController extends Controller
             $products = Product::with([
                     'storefront:id,name',
                     'user:id,name',
-                    'first_image'
+                    'product_image'
                 ])
                 ->select('id','user_id','storefront_id','title','status','product_link')
                 ->when($search, function ($query) use ($search) {
@@ -51,7 +51,7 @@ class AdminProductModerationController extends Controller
             $product = Product::select('id','user_id','storefront_id','album_id','title','description','price','product_link','status','created_at')
             ->with('album:id,name')
             ->with('user:id,name,profile_photo,cover_photo')
-            ->with('first_image')->find($id);
+            ->with('product_image')->find($id);
             $product->original_link = $product->product_link;
             $product->product_link = route('product.track', ['id' => $product->id]);
 

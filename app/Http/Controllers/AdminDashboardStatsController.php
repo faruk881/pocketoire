@@ -75,7 +75,7 @@ class AdminDashboardStatsController extends Controller
             ->orderByDesc('clicks_count')
             ->with('storefront:id,name')
             ->with('user:id,name')
-            ->with('first_image')
+            ->with('product_image')
             ->limit(3)
             ->get();
 
@@ -201,7 +201,7 @@ class AdminDashboardStatsController extends Controller
             ->orderByDesc('clicks_count')
             ->with('storefront:id,name')
             ->with('user:id,name')
-            ->with('first_image')
+            ->with('product_image')
             ->limit(3)
             ->get();
 
