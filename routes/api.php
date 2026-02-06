@@ -36,7 +36,7 @@ Route::post('/contact-messages',[ContactMessageController::class,'store'])->name
 Route::get('/faq',[SettingsController::class,'getFaq'])->name('faq.get');
 Route::get('/terms',[SettingsController::class,'getTerms'])->name('terms.get');
 Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->name('privacy-policy.get');
-Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
+// Route::get('/product/{id}',[ProductController::class,'show'])->name('product.show');
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
 Route::get('/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
 Route::get('/products/featured',[StorefrontController::class,'storefrontFeaturedProducts'])->name('storefront.featured.products.get');
@@ -76,6 +76,8 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::put('/storefront/albums/{id}',[AlbumController::class,'updateAlbum'])->name('storefront.albums.update');
     Route::get('/creator/profile', [CreatorProfileController::class, 'show'])->name('creator.profile.show');
     route::patch('/creator/profile',[CreatorProfileController::class,'update'])->name('creator.profile.update');
+    Route::get('/product/get',[ProductController::class,'getProduct'])->name('product.get.product');
+    
     Route::post('/product',[ProductController::class,'storeProduct'])->name('product.store')->middleware('storefrontActive');
     Route::patch('/product/{id}/refresh',[ProductController::class,'refreshProduct'])->name('product.refresh')->middleware('storefrontActive');
     Route::get('/all-vaitor-products',[ProductController::class,'showVaitorProduct'])->name('product.showVaitorProduct');

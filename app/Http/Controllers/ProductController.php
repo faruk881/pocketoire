@@ -127,8 +127,17 @@ class ProductController extends Controller
             'url' => ['required', 'url'],
         ]);
 
+        $affiliateUrl = $this->genAffiliateLink($request->url);
+
         // 2. Parse URL
-        $parts = parse_url($request->url);
+        
+        return apiSuccess('Affiliate link generated.', [
+            'affiliate_url' => $affiliateUrl,
+        ]);
+    }
+
+    private function genAffiliateLink(string $url){
+        $parts = parse_url($url);
 
         if (
             empty($parts['host']) ||
@@ -149,28 +158,41 @@ class ProductController extends Controller
         }
 
         // 5. Build clean affiliate URL
-        $affiliateUrl =
-            $parts['scheme'].'://'.$parts['host'].$parts['path']
-            .'?'.http_build_query([
-                'mcid' => $query['mcid'],
-                'pid'  => $query['pid'],
-            ]);
+        $affiliateUrl = $parts['scheme'].'://'.$parts['host'].$parts['path']
+                        .'?'.http_build_query([
+                            'mcid' => $query['mcid'],
+                            'pid'  => $query['pid'],
+                        ]);
 
-        return apiSuccess('Affiliate link generated.', [
-            'affiliate_url' => $affiliateUrl.'&medium=api&campaign=creator_'.auth()->user()->id,
-        ]);
+        return $affiliateUrl.'&medium=api&campaign=creator_'.auth()->user()->id;
     }
     
 
     public function storeProduct(StoreProductRequest $request){
         
         // Get the product link
-        $productLink = $request->product_link;
+        $productLink = $request->product_url;
+        $productName = $request->product_name;
+        $productDescription = $request->description;
+        $albumId = $request->album_id;
+        $imageUrl = $request->image_url;
+
 
         // Check if product exists
         $viatorProductCode = $this->extractViatorProductId($productLink);
         if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
             return apiError('This product already exists.', 409);
+        }
+
+        // Check for valid album id
+        $albumExists = auth()->user()
+            ->storefront
+            ->albums()
+            ->where('id', $albumId)
+            ->exists();
+
+        if (! $albumExists) {
+            return apiError('Invalid album selected', 403);
         }
 
         try{
@@ -202,9 +224,11 @@ class ProductController extends Controller
             $product = Product::create([
                 'user_id' => auth()->user()->id,
                 'storefront_id' => auth()->user()->storefront->id,
-                'album_id' => $request->album_id,
-                'title' => $content['title'],
-                'description' => $content['description'],
+                'album_id' => $albumId,
+                // 'title' => $content['title'],
+                'title' => $productName,
+                // 'description' => $content['description'],
+                'description' => $productDescription,
                 'price'        => $priceData['summary']['fromPrice'] ?? null,
                 'currency'     => $priceData['currency'] ?? 'USD',
                 'product_link' => $productLink,
@@ -230,16 +254,16 @@ class ProductController extends Controller
             } else {
 
                 // Get one highest resulation image if found
-                $imageUrls = collect($content['images'] ?? [])
-                ->pluck('variants') // Get all variant arrays
-                ->collapse()        // Merge them into one long list of variants
-                ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0)) // Get the largest image
-                ->first()['url'] ?? null; //Get the image or set it null.
+                // $imageUrls = collect($content['images'] ?? [])
+                // ->pluck('variants') // Get all variant arrays
+                // ->collapse()        // Merge them into one long list of variants
+                // ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0)) // Get the largest image
+                // ->first()['url'] ?? null; //Get the image or set it null.
 
                 // Save the image to database
                 ProductImage::create([
                     'product_id' => $product->id,
-                    'image' => $imageUrls,
+                    'image' => $imageUrl,
                     'source' => 'viator',
                 ]);
             }
@@ -325,61 +349,79 @@ class ProductController extends Controller
 
     }
 
-    public function show($productCode)
-    {
+    public function getProduct(Request $request)
+    {   
         try{
+            // Get the product link
+            $productLink = $request->product_link;
+        
+            // Check if product exists
+            $viatorProductCode = $this->extractViatorProductId($productLink);
+            if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
+                return apiError('This product already exists.', 409);
+            }
+
             // 1. Fetch Product Content (Name & Description)
             $contentResponse = Http::withHeaders([
                 'exp-api-key' => $this->apiKey,
                 'Accept-Language' => 'en-US',
                 'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/products/{$productCode}");
+            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
+            
+            // Check the valid response
+            if (! $contentResponse->successful()) {
+                return apiError(
+                    'Failed to fetch product from Viator. ',
+                    $contentResponse->status()
+                );
+            }
 
             // 2. Fetch Pricing Schedule (Lowest Price)
             $priceResponse = Http::withHeaders([
                 'exp-api-key' => $this->apiKey,
                 'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/availability/schedules/{$productCode}");
+            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
+
+
+            // Get product details
+            $content = $contentResponse->json();
+
+            // Get product price details
+            $priceData = $priceResponse->json();
+
+
+            // Get product URL
+            $product_url  = $content['productUrl'];
+
+            if(!$product_url) {
+                return apiError('Product URL not found.', 404);
+            }
+
+            $affiliate_url = $this->genAffiliateLink($product_url);
+
+            $imageUrls = [];
+
+            $imageUrls = collect($content['images'] ?? [])
+                ->pluck('variants') // Get all variant arrays
+                ->collapse()        // Merge them into one long list of variants
+                ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+                ->first()['url'] ?? null;
+
+            // Extracting only the data you requested
+            return response()->json([
+                'product_name' => $content['title'] ?? 'N/A',
+                'description'  => $content['description'] ?? 'N/A',
+                // 'fromPrice' is the lowest lead price available for this product
+                'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
+                'currency'     => $priceData['currency'] ?? 'USD',
+                'product_url' => $affiliate_url,
+                'image_url'    => $imageUrls,
+                'albums' => auth()->user()->storefront->albums,
+                // 'all_images'   => $content['images'],
+            ]);
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
-
-        // if ($contentResponse->failed() || $priceResponse->failed()) {
-        //     return response()->json(['error' => 'Could not fetch product data'.$productCode], 404);
-        // }
-
-        $content = $contentResponse->json();
-        $priceData = $priceResponse->json();
-
-        // $imageUrls = [];
-        // if (!empty($content['images'])) {
-        //     // Use array_slice to get only the first 5 images
-        //     $imagesToProcess = array_slice($content['images'], 0, 5);
-            
-        //     foreach ($imagesToProcess as $image) {
-        //         // Collect high-res variant if available
-        //         $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
-        //     }
-        // }
-
-        $imageUrls = [];
-
-        $imageUrls = collect($content['images'] ?? [])
-            ->pluck('variants') // Get all variant arrays
-            ->collapse()        // Merge them into one long list of variants
-            ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
-            ->first()['url'] ?? null;
-
-        // Extracting only the data you requested
-        return response()->json([
-            'product_name' => $content['title'] ?? 'N/A',
-            'description'  => $content['description'] ?? 'N/A',
-            // 'fromPrice' is the lowest lead price available for this product
-            'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
-            'currency'     => $priceData['currency'] ?? 'USD',
-            'image_url'    => $imageUrls,
-            'all_images'   => $content['images'],
-        ]);
     }
 
     public function trackAndRedirect(Request $request, $id)
