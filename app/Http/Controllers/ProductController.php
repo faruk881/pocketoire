@@ -6,6 +6,7 @@ use App\Http\Requests\StoreProductRequest;
 use App\Models\Product;
 use App\Models\ProductClick;
 use App\Models\ProductImage;
+use App\Models\ViatorDestination;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -38,86 +39,149 @@ class ProductController extends Controller
     }
 
     public function showVaitorProductDestination() {
-            $response = Http::withHeaders([
-            'exp-api-key' => $this->apiKey,
-            'Accept' => 'application/json;version=2.0',
-            'Accept-Language' => 'en-US',
-            'Content-Type' => 'application/json',
-        ])->get($this->baseUrl.'/partner/destinations');
+        // Fetch specific columns from the database
+        $destinations = ViatorDestination::select(
+            'destination_id', 
+            'name', 
+            'type', 
+            'default_currency_code', 
+            'time_zone'
+        )->get();
 
-        return response()->json($response->json());
-
-    }
-
-    public function showVaitorProduct(Request $request)
-    {
-        $request->validate([
-            'destination' => ['required','integer'],
-            'per_page'    => ['sometimes', 'integer', 'min:1', 'max:50'],
-            'page'        => ['sometimes', 'integer', 'min:1'],
-            'keywords'    => ['sometimes', 'string'],
-        ]);
-
-        $destination = $request->get('destination', 684);
-        $perPage = $request->get('per_page', 10);
-        $page = $request->get('page', 1);
-        $startIndex = (($page - 1) * $perPage) + 1;
-
-
-        $response = Http::withHeaders([
-            'exp-api-key' => $this->apiKey,
-            'Accept' => 'application/json;version=2.0',
-            'Content-Type' => 'application/json',
-            'Accept-Language'=> 'en-US',
-        ])->post($this->baseUrl.'/partner/products/search', [
-            "filtering" => [
-                "destination" => $destination,
-            ],
-            "currency" => "USD",
-            "pagination" => [
-                "start" => $startIndex,
-                "count" => $perPage
-            ]
-        ]);
-
-        if ($response->failed()) {
-            return response()->json([
-                'error' => 'Failed to fetch products from Viator'
-            ], 500);
-        }
-
-        $data = $response->json();
-        $products = $data['products'] ?? [];
-        $totalCount = $data['totalCount'] ?? 0;
-
-        $formattedProducts = collect($products)->map(function ($product) {
-            $images = [];
-
-            foreach (array_slice($product['images'] ?? [], 0, 5) as $img) {
-                $variant = collect($img['variants'] ?? [])->last();
-                if ($variant && isset($variant['url'])) {
-                    $images[] = $variant['url'];
-                }
-            }
-
+        // Transform the data to match the exact JSON keys you want
+        $formatted = $destinations->map(function ($dest) {
             return [
-                'product_code' => $product['productCode'],
-                'name'         => $product['title'],
-                'price'        => $product['pricing']['summary']['fromPrice'] ?? null,
-                'currency'     => 'USD',
-                'images'       => $images,
-                'rating'       => $product['reviews']['combinedAverageRating'] ?? 0,
-                'url'          => $product['productUrl'],
+                'destinationId'       => $dest->destination_id,
+                'name'                => $dest->name,
+                'type'                => $dest->type,
+                'defaultCurrencyCode' => $dest->default_currency_code,
+                'timeZone'            => $dest->time_zone,
             ];
         });
 
-        return response()->json([
-            'current_page' => (int) $page,
-            'per_page'     => (int) $perPage,
-            'total_items'  => (int) $totalCount,
-            'total_pages'  => (int) ceil($totalCount / $perPage),
-            'data'         => $formattedProducts,
-        ]);
+        // Return the response
+        return apiSuccess('All destination loaded',$formatted);
+    
+
+    }
+
+    public function showViatorProduct(Request $request)
+    {
+        try{
+            // Validate request
+            $request->validate([
+                'destination' => ['required','integer'],
+                'per_page'    => ['sometimes', 'integer', 'min:1', 'max:50'],
+                'page'        => ['sometimes', 'integer', 'min:1'],
+                'keywords'    => ['sometimes', 'string'],
+            ]);
+
+            // Get Request Data
+            $destination = $request->get('destination', 684);
+            $perPage = $request->get('per_page', 10);
+            $page = $request->get('page', 1);
+            $startIndex = (($page - 1) * $perPage) + 1;
+            $keywords = $request->get('keywords', null);
+
+            // Check if there is search keywords. 
+            if($keywords){
+                // Get Search Products
+                $response = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept' => 'application/json;version=2.0',
+                    'Content-Type' => 'application/json',
+                    'Accept-Language'=> 'en-US',
+                ])->post($this->baseUrl . '/partner/search/freetext', [
+                    "searchTerm" => $keywords,
+                    "productFiltering" => [
+                        "destination" => $destination,
+                    ],
+                    "searchTypes" => [
+                        [
+                            "searchType" => "PRODUCTS",
+                            "pagination" => [
+                                "start" => $startIndex,
+                                "count" => $perPage,
+                            ],
+                        ]
+                    ],
+                    "currency" => "USD",
+                ]);
+                $getData = $response->json();
+
+                $data['totalCount'] = $getData['products']['totalCount'];
+                if($data['totalCount'] > 0){
+                    $data['products'] = $getData['products']['results'];
+
+                } else {
+                    $data['products'] = [];
+                }
+
+            } else {
+                // If there is no search keywords then get all products.
+                $response = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept' => 'application/json;version=2.0',
+                    'Content-Type' => 'application/json',
+                    'Accept-Language'=> 'en-US',
+                ])->post($this->baseUrl.'/partner/products/search', [
+                    "filtering" => [
+                        "destination" => $destination,
+                    ],
+                    "currency" => "USD",
+                    "pagination" => [
+                        "start" => $startIndex,
+                        "count" => $perPage
+                    ]
+                ]);
+                 $data = $response->json();
+
+            }
+            
+            // Check if response success.
+            if ($response->failed()) {
+                return apiError('Failed to fetch products from Viator | '.$response);
+            }
+
+            // Get Products.
+            $products = $data['products'] ?? [];
+
+            // Get Total Count.
+            $totalCount = $data['totalCount'] ?? 0;
+
+            // Filter the products and get only necessery details.
+            $formattedProducts = collect($products)->map(function ($product) {
+                $images = [];
+
+                foreach (array_slice($product['images'] ?? [], 0, 5) as $img) {
+                    $variant = collect($img['variants'] ?? [])->last();
+                    if ($variant && isset($variant['url'])) {
+                        $images[] = $variant['url'];
+                    }
+                }
+
+                return [
+                    'product_code' => $product['productCode'],
+                    'name'         => $product['title'],
+                    'price'        => $product['pricing']['summary']['fromPrice'] ?? null,
+                    'currency'     => 'USD',
+                    'images'       => $images,
+                    'rating'       => $product['reviews']['combinedAverageRating'] ?? 0,
+                    'url'          => $product['productUrl'],
+                ];
+            });
+
+            // Return the data
+            return response()->json([
+                'current_page' => (int) $page,
+                'per_page'     => (int) $perPage,
+                'total_items'  => (int) $totalCount,
+                'total_pages'  => (int) ceil($totalCount / $perPage),
+                'data'         => $formattedProducts,
+            ]);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage().' | '.$e->getLine());
+        }
     }
 
 

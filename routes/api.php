@@ -19,6 +19,7 @@ use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\ViatorDestinationsController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -80,7 +81,7 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     
     Route::post('/product',[ProductController::class,'storeProduct'])->name('product.store')->middleware('storefrontActive');
     Route::patch('/product/{id}/refresh',[ProductController::class,'refreshProduct'])->name('product.refresh')->middleware('storefrontActive');
-    Route::get('/all-vaitor-products',[ProductController::class,'showVaitorProduct'])->name('product.showVaitorProduct');
+    Route::get('/all-viator-products',[ProductController::class,'showViatorProduct'])->name('product.showVaitorProduct');
     Route::get('/vaitor-products-destination',[ProductController::class,'showVaitorProductDestination'])->name('product.showVaitorProductDestination');
     Route::post('/generate-affiliate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateAffiliateLink');
     Route::post('/generate-link',[ProductController::class,'generateAffiliateLink'])->name('product.generateLink');
@@ -134,6 +135,9 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::get('/admin/products/{id}',[AdminProductModerationController::class,'viewProduct']);
     Route::patch('/admin/products/{id}',[AdminProductModerationController::class,'updateProductStatus']);
     Route::delete('/admin/products/{id}',[AdminProductModerationController::class,'deleteProduct']);
+
+    // Viator Destination
+    Route::get('/admin/refresh-viator-destination',[ViatorDestinationsController::class,'refreshDestinations']);
 
 
 });
