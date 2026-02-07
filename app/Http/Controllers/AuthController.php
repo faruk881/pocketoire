@@ -61,7 +61,7 @@ class AuthController extends Controller
 
             // Return success message.
             return apiSuccess('Login successful.', [
-                'user'  => new AuthUserResource($user),
+                'user'  => $user,
                 'token' => $token,
             ]);
 
