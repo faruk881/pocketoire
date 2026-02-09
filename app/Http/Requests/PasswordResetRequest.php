@@ -24,7 +24,6 @@ class PasswordResetRequest extends FormRequest
         return [
             'email'    => 'required|email',
             'otp'      => 'required|digits:6',
-            'password' => 'required|string|min:8',
         ];
     }
 
@@ -39,11 +38,6 @@ class PasswordResetRequest extends FormRequest
             // OTP
             'otp.required' => 'The verification code is required.',
             'otp.digits'   => 'The verification code must be exactly 6 digits.',
-
-            // Password
-            'password.required'  => 'Password is required.',
-            'password.string'    => 'Password must be a valid string.',
-            'password.min'       => 'Password must be at least 8 characters long.',
         ];
     }
 }

@@ -24,6 +24,9 @@ return new class extends Migration
             $table->timestamp('otp_expires_at')->nullable();
 
             $table->string('password');
+            $table->string('password_reset_token')->nullable();
+            $table->timestamp('password_reset_expires_at')->nullable();
+
 
             $table->string('profile_photo')->nullable();
             $table->string('cover_photo')->nullable();

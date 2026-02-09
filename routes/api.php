@@ -55,6 +55,7 @@ Route::post('/webhooks/stripe',[StripeWebhookController::class,'handle']);
 // Password reset routes
 Route::post('/auth/forgot-password',[PasswordController::class,'forgotPassword']);
 Route::post('/auth/forgot-password/verify-otp',[PasswordController::class,'verifyPasswordResetOtp']); 
+Route::post('/auth/forgot-password/update-password',[PasswordController::class,'updatePassword']);
 Route::put('/profile/password',[PasswordController::class,'changePassword'])->middleware(['auth:sanctum', 'canChangePassword']);
 
 // Mail verify routes

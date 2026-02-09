@@ -464,6 +464,7 @@ class StorefrontController extends Controller
         try {
             // Get Featured Products
             $featuredProducts = Product::where('status','approved')
+            ->with('product_image')
             ->latest()
             ->take(8)->get()
             ->transform(function ($product) {
