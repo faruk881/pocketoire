@@ -499,6 +499,7 @@ class StorefrontController extends Controller
             // Load Related Products
             $related = Product::where('storefront_id', $product->storefront_id)
                 ->where('id', '!=', $id)
+                ->with('product_image')
                 ->limit(4)
                 ->get()
                 ->transform(function ($product) {
