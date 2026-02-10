@@ -32,7 +32,7 @@ class UpdateCreatorProfileRequest extends FormRequest
             'store_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'store_bio' => ['sometimes', 'nullable', 'string', 'max:1000'],
             'name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'storefront_url' => ['required', 'string', 'alpha_dash', 'min:3', 'max:150', 'unique:storefronts,slug'],
+            'storefront_url' => ['sometimes', 'string', 'alpha_dash', 'min:3', 'max:150'],
             'tiktok_link' => ['sometimes', 'nullable', 'url', 'max:255'],
             'instagram_link' => ['sometimes', 'nullable', 'url', 'max:255'],
         ];
@@ -57,7 +57,6 @@ class UpdateCreatorProfileRequest extends FormRequest
 
             'storefront_url.required' => 'Store URL is required.',
             'storefront_url.alpha_dash' => 'Store URL may only contain letters, numbers, dashes, and underscores.',
-            'storefront_url.unique' => 'This store URL is already taken. Please choose another one.',
             'storefront_url.min' => 'Store URL must be at least 3 characters.',
             'storefront_url.max' => 'Store URL cannot exceed 150 characters.',
             'tiktok_link.url' => 'TikTok link must be a valid URL (include http:// or https://).',

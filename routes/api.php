@@ -66,6 +66,7 @@ Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/profile',[UserProfileController::class,'show']);
     Route::patch('/profile',[UserProfileController::class,'update']);
+    Route::get('/profile/edit',[UserProfileController::class,'getForUpdate']);
 });
 
 // Product Save product controller

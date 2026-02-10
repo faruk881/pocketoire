@@ -15,11 +15,13 @@ class CreatorProfileResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
+            'id' => $this->id,
             'store_id' => $this->storefront->id,
             'store_name' => $this->storefront->name,
             'store_bio' => $this->storefront->bio,
-            'user_id' => $this->id,
             'name' => $this->name,
+            'profile_photo' => $this->profile_photo,
+            'cover_photo' => $this->cover_photo,
             'email' => $this->email,
             'storefront_url' => $this->storefront->slug,
             'tiktok_link' => $this->storefront->tiktok_link,
