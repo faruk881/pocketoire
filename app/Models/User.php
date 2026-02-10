@@ -98,6 +98,12 @@ class User extends Authenticatable
         return $this->account_type === 'buyer';
     }
 
+    public function savedProducts()
+    {
+        return $this->belongsToMany(Product::class, 'saved_products')
+                    ->withTimestamps();
+    }
+
     // Get the commission ratio for the creator 
     //commission_percent in the end it will like this "->each->append('commission_percent');"
     public function getCommissionPercentAttribute()
@@ -120,6 +126,13 @@ class User extends Authenticatable
             ->latest()
             ->value('global_creator_commission_percent') ?? 0;
     }
+
+    // public function recentViews() {
+    //     return $this->belongsToMany(Product::class, 'recent_views')
+    //                 ->withPivot('viewed_at')
+    //                 ->orderByPivot('viewed_at', 'desc')
+    //                 ->take(4); // Strictly limits to 4
+    // }
 
 
 

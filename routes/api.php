@@ -14,20 +14,20 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\HomePage\ContactMessageController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductSaveController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SocialAuthController;
 use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\StripeConnectController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\UserProfileController;
 use App\Http\Controllers\ViatorDestinationsController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
 Route::post('/auth/register',[RegisterController::class,'register'])->name('auth.register');
-
 Route::post('/auth/login',[AuthController::class,'login'])->name('auth.login');
 Route::post('/auth/logout',[AuthController::class,'logout'])->name('auth.logout')->middleware('auth:sanctum');
-
 Route::get('/auth/google/url', [SocialAuthController::class, 'loginUrl']);
 Route::get('/auth/google/callback', [socialAuthController::class, 'callback']);
 
@@ -62,6 +62,16 @@ Route::put('/profile/password',[PasswordController::class,'changePassword'])->mi
 Route::post('/auth/email/verify-otp',[EmailVerificationController::class,'verifyOtp']);
 Route::post('/auth/email/verify/resend-otp',[EmailVerificationController::class,'resendOtp']);
 
+// User Management
+Route::middleware('auth:sanctum')->group(function(){
+    Route::get('/profile',[UserProfileController::class,'show']);
+    Route::patch('/profile',[UserProfileController::class,'update']);
+});
+
+// Product Save product controller
+Route::middleware('auth:sanctum')->group(function(){
+    Route::post('saved-products/{id}/toggle', [ProductSaveController::class, 'toggle']);
+});
 
 // Storefront routes
 Route::middleware('auth:sanctum')->group(function(){

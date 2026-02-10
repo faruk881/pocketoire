@@ -40,4 +40,17 @@ class Product extends Model
     {
         return $this->hasMany(Sale::class);
     }
+
+    public function savedByUsers()
+    {
+        return $this->belongsToMany(User::class, 'saved_products')
+                    ->withTimestamps();
+    }
+
+    public function isSavedBy($userId)
+    {
+        return $this->savedByUsers()
+            ->where('user_id', $userId)
+            ->exists();
+    }
 }

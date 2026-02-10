@@ -9,9 +9,11 @@ use App\Http\Requests\StorefrontUrlCheckRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Models\Album;
 use App\Models\Product;
+use App\Models\RecentViews;
 use App\Models\Storefront;
 use App\Services\StripeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Stripe\SetupIntent;
@@ -487,12 +489,22 @@ class StorefrontController extends Controller
                 'storefront:id,user_id,name,bio',
                 'storefront.user:id,name,profile_photo,cover_photo',
                 'product_image:id,product_images.product_id,image,source' 
-            ])->find($id);
+            ])
+
+            // Check if the product is saved by current user.
+            ->when(auth('sanctum')->check(), function ($q) {
+                $q->withExists([
+                    'savedByUsers as is_saved' => fn ($q) =>
+                        $q->where('saved_products.user_id', auth('sanctum')->id())
+                ]);
+            })
+            ->find($id);
 
             // Check if product presents
             if (!$product) {
                 return apiError('Product not found.', 404);
             }
+
             // Add trackable link to the product
             $product->product_link = route('product.track', ['id' => $product->id]);
 
@@ -507,10 +519,20 @@ class StorefrontController extends Controller
                     return $product;
                 });
 
+                if(auth()->check()){
+                    RecentViews::create([
+                        'user_id' => auth()->id(),
+                        'product_id' => $id,
+                        'viewed_at' => now()
+                    ]);
+                }
+
+
             // Prepare Data
             $data = [
                 'product' => $product,
-                'related_products' => $related  
+                'related_products' => $related,
+                'is_auth' => auth()->check()
             ];
 
             return apiSuccess('Product details retrieved successfully.', $data);
