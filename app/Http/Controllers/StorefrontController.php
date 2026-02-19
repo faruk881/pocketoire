@@ -240,7 +240,7 @@ class StorefrontController extends Controller
 
             } else {
                 // --- OPTION B: Fetch All Products (Flat List) ---
-                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks')->withCount('sales')->withSum('sales','creator_commission');
+                $query = Product::where('storefront_id', $user->storefront->id)->withCount('clicks')->withCount('sales')->withSum('sales','creator_commission')->with('product_image');
 
                 // Filters
                 $query->when($minPrice, fn($q) => $q->where('price', '>=', $minPrice));
@@ -338,6 +338,7 @@ class StorefrontController extends Controller
                 //Fetch All Products (Flat List) ---
                 $query = Product::where('storefront_id', $user->storefront->id)
                     ->where('status','approved')
+                    ->with('product_image')
                     ->withCount('clicks')
                     ->withCount('sales')
                     ->withSum('sales','creator_commission');
@@ -349,7 +350,7 @@ class StorefrontController extends Controller
                 $query->when($search, function ($q) use ($search) {
                     return $q->where(function ($subQuery) use ($search) {
                         $subQuery->where('title', 'LIKE', "%{$search}%")
-                                 ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%");
+                                 ->orWhere('viator_product_code', 'LIKE', "%{$search}%");
                     });
                 });
 
@@ -397,7 +398,7 @@ class StorefrontController extends Controller
 
             // 2. Start Query: Search ALL products
             // We use 'with' to fetch the Store and User info efficiently (Eager Loading)
-            $query = Product::where('status','approved')->with(['storefront:id,user_id,name','storefront.user:id,name']);
+            $query = Product::where('status','approved')->with(['storefront:id,user_id,name','storefront.user:id,name','product_image']);
 
             // --- FILTER BY SPECIFIC STORE (Optional) ---
             $query->when($storefrontId, function ($q) use ($storefrontId) {

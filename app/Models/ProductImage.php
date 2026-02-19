@@ -13,6 +13,16 @@ class ProductImage extends Model
         return $this->belongsTo(Product::class);
     }
 
+    // 🔥 Override image attribute
+    public function getImageAttribute($value)
+    {
+        if ($this->source === 'upload') {
+            return Storage::disk('public')->url($value);
+        }
+
+        return $value; // viator already full URL
+    }
+
     // 🔥 auto delete image file when record is deleted
     protected static function booted()
     {

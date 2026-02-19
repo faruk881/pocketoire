@@ -144,26 +144,49 @@ class commissionController extends Controller
             // We will get only the latest event 
             $latestSaleIds = Sale::selectRaw('MAX(id)')->groupBy('booking_ref');
 
-            // Get The Sales Data
-            $sales = Sale::select('id',
-                                'product_id',
-                                'user_id',
-                                'booking_ref',
-                                'event_type',
-                                'campaign_value',
-                                'platform_commission',
-                                'creator_commission',
-                                'creator_commission_percent')
-                                ->whereIn('id', $latestSaleIds)
-                                ->whereNotNull('user_id')
-                                ->with(['product:id,title',
-                                        'user' => function($query) {
-                                            $query->select('id', 'name', 'email')
-                                                ->with('storefront:id,user_id,name');
-                                            }
-                                        ])
-                                ->latest('id')
-                                ->paginate($perPage);
+            $searchTerm    = $request->get('search'); // product code or booking reference
+            $statusFilter  = $request->get('status'); // all, paid, pending
+            $typeFilter    = $request->get('type');   // all, confirmed
+
+            $query = Sale::select(
+                'id', 'product_id', 'user_id', 'booking_ref', 'transaction_ref', 
+                'event_type', 'campaign_value', 'platform_commission', 
+                'creator_commission', 'creator_commission_percent'
+            )
+            ->whereIn('id', $latestSaleIds)
+                ->whereNotNull('user_id');
+
+            // 2. Search Functionality
+            if (!empty($searchTerm)) {
+                $query->where(function($q) use ($searchTerm) {
+                    $q->where('booking_ref', 'LIKE', "%{$searchTerm}%")
+                    ->orWhereHas('product', function($pq) use ($searchTerm) {
+                        // Assuming 'product_code' is the column name in your products table
+                        $pq->where('product_code', 'LIKE', "%{$searchTerm}%");
+                    });
+                });
+            }
+
+            // 3. Status/Type Filtering Logic
+            if ($typeFilter === 'confirmed') {
+                $query->where('event_type', 'confirmed');
+            }
+
+            if ($statusFilter === 'paid') {
+                $query->where('event_type', 'confirmed')
+                    ->whereNotNull('platform_commission');
+            } elseif ($statusFilter === 'pending') {
+                $query->where('event_type', 'confirmed')
+                    ->whereNull('platform_commission');
+            }
+
+            // 4. Final Execution
+            $sales = $query->with(['product:id,title', 'user' => function($query) {
+                    $query->select('id', 'name', 'email')
+                        ->with('storefront:id,user_id,name');
+                }])
+                ->latest('id')
+                ->paginate($perPage);
 
             // return sales
             return apiSuccess('All commissions loaded.', ['sales' => $sales]);
