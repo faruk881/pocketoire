@@ -52,7 +52,7 @@ class AuthController extends Controller
 
             // Check users login session. if 3 session exists then log out from all session and login.
             $activeSessions = $user->tokens()->count();
-            if($activeSessions >=3) {
+            if($activeSessions >= 10) {
                 $user->tokens()->delete();
             }
 

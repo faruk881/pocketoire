@@ -19,7 +19,7 @@ class UserProfileController extends Controller
         try {
             // Get the user with saved products
             $user = User::where('id', auth()->id())
-            ->select('id', 'name', 'email', 'profile_photo')
+            ->select('id', 'name', 'email', 'profile_photo', 'account_type')
             ->with(['savedProducts' => function($query) {
                 // Select product fields + the images relationship
                 $query->select('products.id', 'title', 'price')
