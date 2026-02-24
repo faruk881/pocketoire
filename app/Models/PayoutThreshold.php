@@ -6,5 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class PayoutThreshold extends Model
 {
-    //
+    protected $guarded = ['id'];
+
 }

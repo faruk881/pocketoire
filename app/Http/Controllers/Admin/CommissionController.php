@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\addcommissionToCreatorRequest;
 use App\Http\Requests\CustomComissionRequest;
 use App\Http\Requests\GlobalComissionRequest;
+use App\Http\Requests\PayoutThresholdRequest;
 use App\Http\Requests\UpdateCustomCommissionRequest;
 use App\Jobs\ProcessStripePayout;
 use App\Models\CommissionSetting;
@@ -207,14 +208,17 @@ class commissionController extends Controller
             
             // Get all creators with storefront and wallet details
             $creators = User::where('account_type', 'creator')
+            ->whereHas('creator_comission_override')
                 ->select('id', 'name', 'email')
                 ->with('storefront:id,user_id,name')
+                // ->with('creator_comission_override')
                 ->with('wallet:id,user_id,balance,status,currency')
                 ->get()
                 ->each->append('commission_percent');
 
             $payouts = Payout::select('id','user_id','wallet_id','amount','currency','method','status','created_at')
                 ->with('user:id,name,email')
+                ->with('user.storefront:id,user_id,name')
                 ->with('wallet:id,user_id,balance,status,currency')
                 ->get();
             
@@ -233,7 +237,7 @@ class commissionController extends Controller
             $data = [
                 'global_creator_commission_percent' => $global_commission_percent->global_creator_commission_percent?:null,
                 'custom_creator_commission'         => $custom_commission_percent?:null,
-                'creators'                          => $creators,
+                // 'creators'                          => $creators,
                 'payout_threshold'                  => $payout_threshold,
                 'payouts'                           => $payouts,
             ];
@@ -394,8 +398,7 @@ class commissionController extends Controller
 
             // Create the custom commission override
             $creatorCommissionOverrides = CreatorCommissionOverrides::Create(
-                ['user_id' => $request->user_id],
-                [
+                ['user_id' => $request->user_id,
                  'creator_commission_percent' => $request->creator_commission_percent,
                  'effective_from' => $request->effective_from,
                  'effective_to' => $request->effective_to,
@@ -451,6 +454,32 @@ class commissionController extends Controller
             return apiError('An error occurred: ' . $e->getMessage());
         }
     }
+
+    public function updatePayoutThreshold(PayoutThresholdRequest $request){
+        try{
+            $payout_threshold = PayoutThreshold::where('is_active', true)->first();
+            if(!$payout_threshold){
+                // Create new threshold
+                PayoutThreshold::create([
+                    'minimum_amount' => $request->minimum_amount,
+                    'maximum_amount' => $request->maximum_amount,
+                    'is_active' => true,
+                ]);
+            } else {
+                // Update existing threshold
+                $payout_threshold->update([
+                    'minimum_amount' => $request->minimum_amount,
+                    'maximum_amount' => $request->maximum_amount,
+                ]);
+            }
+
+            return apiSuccess('Payout threshold updated successfully',$payout_threshold);
+        } catch (\Exception $e) {
+            return apiError('An error occurred: ' . $e->getMessage());
+        }
+    }
+
+
 
 
 }

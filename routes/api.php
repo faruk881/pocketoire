@@ -137,7 +137,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
     Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
     Route::get('/admin/custom/commission/add-view',[commissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
-    
+    Route::post('/admin/payout-thrsehold/update',[commissionController::class,'updatePayoutThreshold'])->name('admin.payout.threshold.update');
+
     // Buyer Management
     Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
     Route::patch('/admin/buyer/{id}/status',[UsersController::class,'updateUserStatus'])->defaults('role','buyer')->name('admin.buyer.update-status');

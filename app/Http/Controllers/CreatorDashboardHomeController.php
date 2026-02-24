@@ -78,13 +78,15 @@ class CreatorDashboardHomeController extends Controller
          * RECENT 3 PRODUCTS
          * =========================
          */
-        $recentProducts = Product::where('storefront_id', $storefront->id)
+        $recentProducts = Product::with('product_image')->where('storefront_id', $storefront->id)
             ->latest()
             ->take(3)
             ->get()
             ->map(fn ($product) => [
+                // dd($product->product_image),
                 'id' => $product->id,
                 'title' => $product->title,
+                'image' => $product->product_image->image ?? null,
                 'clicks' => $product->clicks()->count(),
                 'earnings' => $product->sales()
                     ->where('status', 'confirmed')
