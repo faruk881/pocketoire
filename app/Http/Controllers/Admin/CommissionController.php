@@ -170,15 +170,15 @@ class commissionController extends Controller
 
             // 3. Status/Type Filtering Logic
             if ($typeFilter === 'confirmed') {
-                $query->where('event_type', 'confirmed');
+                $query->where('event_type', 'CONFIRMATION');
             }
 
             if ($statusFilter === 'paid') {
-                $query->where('event_type', 'confirmed')
-                    ->whereNotNull('platform_commission');
+                $query->where('event_type', 'CONFIRMATION')
+                    ->whereNotNull('creator_commission');
             } elseif ($statusFilter === 'pending') {
-                $query->where('event_type', 'confirmed')
-                    ->whereNull('platform_commission');
+                $query->where('event_type', 'CONFIRMATION')
+                    ->whereNull('creator_commission');
             }
 
             // 4. Final Execution
