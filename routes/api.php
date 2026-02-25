@@ -119,6 +119,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     // Settings Management
     Route::post('/admin/terms',[SettingsController::class,'storeTerms'])->name('admin.terms.store');
     Route::post('/admin/faq',[SettingsController::class,'storeFaq'])->name('admin.faq.store');
+    Route::patch('/admin/faq/{id}',[SettingsController::class,'editFaq'])->name('admin.faq.edit');
+    Route::delete('/admin/faq/{id}',[SettingsController::class,'deleteFaq'])->name('admin.faq.delete');
     Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
 
     // Creator Management

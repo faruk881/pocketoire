@@ -51,6 +51,55 @@ class SettingsController extends Controller
         }
     }
 
+    public function editFaq(Request $request, $id) {
+        try{
+            // Get the faq
+            $faq = Faq::find($id);
+
+            // check if faq exists
+            if (!$faq) {
+                return apiError('FAQ not found.', [], 404);
+            }
+
+            // Validate the request
+            $data = $request->validate([
+                'question' => 'required|string',
+                'answer' => 'required|string',
+            ]);
+
+            // Add the updated_by field
+            $data['updated_by'] = auth()->id();
+
+            // Update the faq
+            $faq->update($data);
+
+            // Return the success message
+            return apiSuccess('FAQ updated successfully.',$faq);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage()); 
+        }
+    }
+
+    public function deleteFaq(Request $request, $id) {
+        try{
+            // Validate the request
+            $faq = Faq::find($id);
+
+            // check if faq exists
+            if (!$faq) {
+                return apiError('FAQ not found.', [], 404);
+            }
+
+            // Delete the faq
+            Faq::destroy($id);
+
+            // Return the success message
+            return apiSuccess('FAQ deleted successfully.');
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage()); 
+        }
+    }
+
     public function getFaq(Request $request) {
         try{
             $faqs = Faq::get(['id','question','answer']);

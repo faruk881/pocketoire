@@ -82,14 +82,14 @@ class CreatorEarningController extends Controller
 
             // Prepare the response data
             $products = $sales->map(fn ($row) => [
-                    'id' => $row->product_id,               // NULL if product missing
-                    'product_code' => $row->product_code,   // ALWAYS available
-                    'title' => $row->title ?? 'Unlisted Product',
-                    'main_image' => $row->main_image,
-                    'total_conversions' => (int) $row->total_conversions,
-                    'total_clicks' => 0, // clicks impossible without product
-                    'total_earnings' => (float) $row->total_earnings,
-                ]);
+                'id' => $row->product_id,               // NULL if product missing
+                'product_code' => $row->product_code,   // ALWAYS available
+                'title' => $row->title ?? 'Unlisted Product',
+                'main_image' => $row->main_image,
+                'total_conversions' => (int) $row->total_conversions,
+                'total_clicks' => 0, // clicks impossible without product
+                'total_earnings' => (float) $row->total_earnings,
+            ]);
             // Fetch wallet and payouts
             $wallet = Wallet::where('user_id', $creatorId)
             ->select('balance','currency','status')                
