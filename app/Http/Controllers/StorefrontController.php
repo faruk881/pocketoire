@@ -28,11 +28,11 @@ class StorefrontController extends Controller
 
             $query = Storefront::select('id', 'user_id', 'name', 'bio',)
                 ->where('status', 'approved')
-                ->withCount(['products as total_sold' => function ($q) {
+                ->withCount(['products as total_products' => function ($q) {
                     $q->where('status','approved');
                 }])
                 // Count 2: Total Products (Listed)
-                ->withCount('products as total_products')
+                // ->withCount('products as total_products')
                 ->with('user:id,name,profile_photo,cover_photo');
 
 

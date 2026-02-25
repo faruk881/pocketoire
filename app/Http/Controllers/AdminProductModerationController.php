@@ -13,26 +13,23 @@ class AdminProductModerationController extends Controller
     public function getProducts(Request $request) {
         try{
 
-            // Get requests
             $perPage = $request->get('per_page', 10);
             $search  = $request->get('search');
-            $status  = $request->get('status'); 
-
-            // Fetch product
+            $status  = $request->get('status');
             $products = Product::with([
                     'storefront:id,name',
                     'user:id,name',
                     'product_image'
                 ])
-                ->select('id','user_id','storefront_id','title','status','product_link')
+                ->select('id','user_id','storefront_id','title','status','description','product_link')
                 ->when($search, function ($query) use ($search) {
                     $query->where(function ($q) use ($search) {
                         $q->where('title', 'like', "%{$search}%")
                         ->orWhere('description', 'like', "%{$search}%");
                     });
                 })
-                ->when($status, function ($query) use ($status) {
-                    $query->where('status', $status);
+                ->when($request->filled('status'), function ($query) use ($status) {
+                    $query->where('status', $status);   
                 })
                 ->paginate($perPage);
 

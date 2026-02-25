@@ -151,25 +151,29 @@ class ProductController extends Controller
 
             // Filter the products and get only necessery details.
             $formattedProducts = collect($products)->map(function ($product) {
-                $images = [];
+            // Collect image URLs
+            $images = collect($product['images'] ?? [])
+                ->map(function ($img) {
+                    // Get the largest variant for this image
+                    return collect($img['variants'] ?? [])
+                        ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+                        ->first()['url'] ?? null;
+                })
+                ->filter()       // remove nulls
+                ->take(5)        // take first 5 images
+                ->values()       // reset keys
+                ->all();
 
-                foreach (array_slice($product['images'] ?? [], 0, 5) as $img) {
-                    $variant = collect($img['variants'] ?? [])->last();
-                    if ($variant && isset($variant['url'])) {
-                        $images[] = $variant['url'];
-                    }
-                }
-
-                return [
-                    'product_code' => $product['productCode'],
-                    'name'         => $product['title'],
-                    'price'        => $product['pricing']['summary']['fromPrice'] ?? null,
-                    'currency'     => 'USD',
-                    'images'       => $images,
-                    'rating'       => $product['reviews']['combinedAverageRating'] ?? 0,
-                    'url'          => $product['productUrl'],
-                ];
-            });
+            return [
+                'product_code' => $product['productCode'],
+                'name'         => $product['title'],
+                'price'        => $product['pricing']['summary']['fromPrice'] ?? null,
+                'currency'     => 'USD',
+                'images'       => $images,
+                'rating'       => $product['reviews']['combinedAverageRating'] ?? 0,
+                'url'          => $product['productUrl'],
+            ];
+        });
 
             // Return the data
             return response()->json([
