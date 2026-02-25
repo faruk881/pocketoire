@@ -89,6 +89,7 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     Route::put('/storefront/albums/{id}',[AlbumController::class,'updateAlbum'])->name('storefront.albums.update');
     Route::get('/creator/profile', [CreatorProfileController::class, 'show'])->name('creator.profile.show');
     route::patch('/creator/profile',[CreatorProfileController::class,'update'])->name('creator.profile.update');
+    Route::delete('/creator/products/{id}',[AdminProductModerationController::class,'deleteProduct']);
     Route::get('/product/get',[ProductController::class,'getProduct'])->name('product.get.product');
     
     Route::post('/product',[ProductController::class,'storeProduct'])->name('product.store')->middleware('storefrontActive');
