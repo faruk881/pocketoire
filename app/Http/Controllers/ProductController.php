@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\EditProductRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Models\Product;
 use App\Models\ProductClick;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -136,7 +138,7 @@ class ProductController extends Controller
                 ]);
                  $data = $response->json();
 
-            }
+            }   
             
             // Check if response success.
             if ($response->failed()) {
@@ -237,31 +239,116 @@ class ProductController extends Controller
     
 
     public function storeProduct(StoreProductRequest $request){
-        
-        // Get the product link
-        $productLink = $request->product_url;
-        $productName = $request->product_name;
-        $productDescription = $request->description;
-        $albumId = $request->album_id;
-        $imageUrl = $request->image_url;
+        try {
+    
+            // Get the product link
+            $productLink = $request->product_url;
+            $productName = $request->product_name;
+            $productDescription = $request->description;
+            $albumId = $request->album_id;
+            $imageUrl = $request->image_url;
 
+
+            // Check if product exists
+            $viatorProductCode = $this->extractViatorProductId($productLink);
+            if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
+                return apiError('This product already exists.', 409);
+            }
+
+            // Check for valid album id
+            $albumExists = auth()->user()
+                ->storefront
+                ->albums()
+                ->where('id', $albumId)
+                ->exists();
+
+            if (! $albumExists) {
+                return apiError('Invalid album selected', 403);
+            }
+
+
+            // Fetch Product Content (Name & Description)
+            $contentResponse = Http::withHeaders([
+                'exp-api-key' => $this->apiKey,
+                'Accept-Language' => 'en-US',
+                'Accept' => 'application/json;version=2.0',
+            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
+
+            // Fetch Pricing Schedule (Lowest Price)
+            $priceResponse = Http::withHeaders([
+                'exp-api-key' => $this->apiKey,
+                'Accept' => 'application/json;version=2.0',
+            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
+
+
+            // Get product details
+            $content = $contentResponse->json();
+
+            // Get product price details
+            $priceData = $priceResponse->json();
+
+
+            // Save details to database
+            $product = Product::create([
+                'user_id' => auth()->user()->id,
+                'storefront_id' => auth()->user()->storefront->id,
+                'album_id' => $albumId,
+                // 'title' => $content['title'],
+                'title' => $productName,
+                // 'description' => $content['description'],
+                'description' => $productDescription,
+                'price'        => $priceData['summary']['fromPrice'] ?? null,
+                'currency'     => $priceData['currency'] ?? 'USD',
+                'product_link' => $productLink,
+                'viator_product_code' => $viatorProductCode,
+            ]);
+
+            // Check if there is image
+
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+
+                // Save the image to storage and get the path.
+                $path = $request->file('image')->store('product_images', 'public');
+
+                // Save the image to database
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image'      => $path,
+                    'source'     => 'upload',
+                ]);
+            } else {
+
+                // Save the image to database
+                ProductImage::create([
+                    'product_id' => $product->id,
+                    'image' => $imageUrl,
+                    'source' => 'viator',
+                ]);
+            }
+            return apiSuccess('The product inserted successfully.', $product);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+    }
+
+    public function refreshProduct($id){
+        // Get ithe product id
+        $productId = $id;
+
+        // Get the product
+        $product = Product::find($productId);
 
         // Check if product exists
+        if (!$product) {
+            return apiError('Product not found.', 404);
+        }
+
+        // Get the product link
+        $productLink = $product->product_link;
+
+        // Extract viator product code from the link
         $viatorProductCode = $this->extractViatorProductId($productLink);
-        if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
-            return apiError('This product already exists.', 409);
-        }
-
-        // Check for valid album id
-        $albumExists = auth()->user()
-            ->storefront
-            ->albums()
-            ->where('id', $albumId)
-            ->exists();
-
-        if (! $albumExists) {
-            return apiError('Invalid album selected', 403);
-        }
 
         try{
             // Fetch Product Content (Name & Description)
@@ -282,111 +369,33 @@ class ProductController extends Controller
 
         // Get product details
         $content = $contentResponse->json();
-
-        // Get product price details
-        $priceData = $priceResponse->json();
-
-        try{
-
-            // Save details to database
-            $product = Product::create([
-                'user_id' => auth()->user()->id,
-                'storefront_id' => auth()->user()->storefront->id,
-                'album_id' => $albumId,
-                // 'title' => $content['title'],
-                'title' => $productName,
-                // 'description' => $content['description'],
-                'description' => $productDescription,
-                'price'        => $priceData['summary']['fromPrice'] ?? null,
-                'currency'     => $priceData['currency'] ?? 'USD',
-                'product_link' => $productLink,
-                'viator_product_code' => $viatorProductCode,
-            ]);
-        } catch(\Throwable $e){
-            return apiError($e->getMessage());
-        }
-
-        // Check if there is image
-        try{
-            if ($request->hasFile('image') && $request->file('image')->isValid()) {
-
-                // Save the image to storage and get the path.
-                $path = $request->file('image')->store('product_images', 'public');
-
-                // Save the image to database
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image'      => $path,
-                    'source'     => 'upload',
-                ]);
-            } else {
-
-                // Get one highest resulation image if found
-                // $imageUrls = collect($content['images'] ?? [])
-                // ->pluck('variants') // Get all variant arrays
-                // ->collapse()        // Merge them into one long list of variants
-                // ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0)) // Get the largest image
-                // ->first()['url'] ?? null; //Get the image or set it null.
-
-                // Save the image to database
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image' => $imageUrl,
-                    'source' => 'viator',
-                ]);
-            }
-        } catch (\Throwable $e) {
-            return apiError($e->getMessage());
-        }
-
-        return apiSuccess('The product inserted successfully.', $product);
-
-    }
-
-    public function refreshProduct($id){
-        // Get the product link
-        $productId = $id;
-        $product = Product::findOrFail($productId);
-        $productLink = $product->product_link;
-        // Check if product exists
-        $viatorProductCode = $this->extractViatorProductId($productLink);
-
-        try{
-            // Fetch Product Content (Name & Description)
-            $contentResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept-Language' => 'en-US',
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
-
-            // Fetch Pricing Schedule (Lowest Price)
-            $priceResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
-        } catch(\Throwable $e){
-            return apiError($e->getMessage());
-        }
-
-        // if ($contentResponse->failed() || $priceResponse->failed()) {
-        //     return response()->json(['error' => 'Could not fetch product data'.$productCode], 404);
-        // }
-
-        // P
-        $content = $contentResponse->json();
         $priceData = $priceResponse->json();
         
-
-        $imageUrls = [];
-        if (!empty($content['images'])) {
-            // Use array_slice to get only the first 5 images
-            $imagesToProcess = array_slice($content['images'], 0, 5);
-            
-            foreach ($imagesToProcess as $image) {
-                // Collect high-res variant if available
-                $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
-            }
+        // Delete old images
+        foreach ($product->product_images as $image) {
+            $image->delete(); // auto deletes file
         }
+
+        $imageUrl = [];
+
+        $imageUrl = collect($content['images'] ?? [])
+            ->pluck('variants') // Get all variant arrays
+            ->collapse()        // Merge them into one long list of variants
+            ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+            ->first()['url'] ?? null;
+
+        // return apiSuccess("",$imageUrl);
+        
+        // $imageUrls = [];
+        // if (!empty($content['images'])) {
+        //     // Use array_slice to get only the first 5 images
+        //     $imagesToProcess = array_slice($content['images'], 0, 5);
+            
+        //     foreach ($imagesToProcess as $image) {
+        //         // Collect high-res variant if available
+        //         $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
+        //     }
+        // }
      
 
         try{
@@ -401,20 +410,86 @@ class ProductController extends Controller
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
-           
 
-        ProductImage::where('product_id', $productId)->delete();
-        foreach ($imageUrls as $url) {
-            ProductImage::create([
-                'product_id' => $product->id,
-                'image' => $url,
-                'source' => 'viator',
-            ]);
-        }
+        ProductImage::create([
+            'product_id' => $product->id,
+            'image' => $imageUrl,
+            'source' => 'viator',
+        ]);
+
 
 
         return apiSuccess('The product refreshed successfully.', $product);
 
+    }
+
+    public function editProduct(EditProductRequest $request, $id) {
+        try {
+            // Find the product
+            $product = Product::find($id);
+
+            // Check if product exists
+            if (!$product) {
+                return apiError('Product not found.', 404);
+            }
+
+            // Get the album id
+            $albumId = $request->album_id;
+
+            // check for valid and authorized album if album id provided
+            if ($request->filled('album_id')) {
+                $albumExists = auth()->user()
+                    ->storefront
+                    ->albums()
+                    ->where('id', $albumId)
+                    ->exists();
+
+                if ($albumExists) {
+                    $product->update([
+                        'album_id' => $request->album_id,
+                    ]);
+                } else {
+                    return apiError('Invalid album selected', 403);
+                }
+            }
+
+            // Handle file upload
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                // Delete previous images
+                foreach ($product->product_images as $image) {
+                    $image->delete(); // auto deletes file
+                }
+                // return apiSuccess('',$product->product_images);
+
+                // Store new image
+                $path = $request->file('image')->store('product_images', 'public');
+
+                // Save to database
+                $product->product_images()->create([
+                    'image' => $path,
+                    'source' => 'upload',
+                ]);
+            }
+
+            // Handle external URL
+            elseif ($request->filled('image_url')) {
+                // Delete previous images
+                foreach ($product->product_images as $image) {
+                    $image->delete(); // auto deletes file
+                }
+
+                // Save external image
+                $product->product_images()->create([
+                    'image' => $request->image_url,
+                    'source' => 'viator',
+                ]);
+            }
+
+            return apiSuccess('Product image updated successfully.', $product);
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
     }
 
     public function getProduct(Request $request)

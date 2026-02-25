@@ -27,8 +27,12 @@ class ProductImage extends Model
     protected static function booted()
     {
         static::deleting(function ($image) {
-            if ($image->image && Storage::disk('public')->exists($image->image)) {
-                Storage::disk('public')->delete($image->image);
+            // Get the raw path from DB, ignore accessor
+            $file = $image->getRawOriginal('image');
+
+            // Only delete if the source is upload
+            if ($file && $image->source === 'upload' && Storage::disk('public')->exists($file)) {
+                Storage::disk('public')->delete($file);
             }
         });
     }
