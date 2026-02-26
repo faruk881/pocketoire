@@ -551,7 +551,7 @@ class ProductController extends Controller
                 ->first()['url'] ?? null;
 
             // Extracting only the data you requested
-            return response()->json([
+            $data = [
                 'product_name' => $content['title'] ?? 'N/A',
                 'description'  => $content['description'] ?? 'N/A',
                 // 'fromPrice' is the lowest lead price available for this product
@@ -561,7 +561,9 @@ class ProductController extends Controller
                 'image_url'    => $imageUrls,
                 'albums' => auth()->user()->storefront->albums,
                 // 'all_images'   => $content['images'],
-            ]);
+            ];
+
+            return apiSuccess('Product details fetched successfully.', $data);
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
