@@ -34,6 +34,7 @@ class SyncViatorBookings extends Command
     {
 
         $this->info('Starting Viator sales sync...');
+        Log::info('Start Viator sales sync: ' . Carbon::now());
 
         // Load last cursor from DB
         $cursor = ViatorSyncState::first()?->cursor;
@@ -103,6 +104,7 @@ class SyncViatorBookings extends Command
 
         } while ($cursor);
 
+        Log::info('Finished Viator sales sync: ' . Carbon::now());
         $this->info('Viator sales sync completed successfully.');
         return Command::SUCCESS;
     }

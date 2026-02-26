@@ -16,7 +16,9 @@ use App\Models\PayoutThreshold;
 use App\Models\Sale;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use Illuminate\Container\Attributes\Log;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Stripe\Card;
 
@@ -143,6 +145,9 @@ class commissionController extends Controller
             // There may multiple bookings with same booking_ref numbers 
             // For example: confirmed, then edited, then cencelled).
             // We will get only the latest event 
+            Artisan::call('viator:sync-sales');
+            // $output = Artisan::output();
+            // Log::info('Viator sync output: ' . $output);
             $latestSaleIds = Sale::selectRaw('MAX(id)')->groupBy('booking_ref');
 
             $searchTerm    = $request->get('search'); // product code or booking reference
