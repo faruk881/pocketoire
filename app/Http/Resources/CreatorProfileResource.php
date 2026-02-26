@@ -25,7 +25,9 @@ class CreatorProfileResource extends JsonResource
             'email' => $this->email,
             'storefront_url' => $this->storefront->slug,
             'tiktok_link' => $this->storefront->tiktok_link,
-            'instagram_link' => $this->storefront->instagram_link
+            'instagram_link' => $this->storefront->instagram_link,
+            'stripe_account_id' => $this->stripe_account_id,
+            'stripe_onboarded' => $this->stripe_onboarded
         ];
     }
 }

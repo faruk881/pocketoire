@@ -225,6 +225,7 @@ class commissionController extends Controller
                 ->with('user:id,name,email')
                 ->with('user.storefront:id,user_id,name')
                 ->with('wallet:id,user_id,balance,status,currency')
+                // ->groupBy('status')
                 ->get();
             
             $payouts->each(function ($payout) {
