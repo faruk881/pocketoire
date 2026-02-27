@@ -58,6 +58,9 @@ class ProcessStripePayout implements ShouldQueue
              * 1️⃣ TRANSFER: Platform → Creator Stripe balance
              */
             if (!$payout->transfer_id) {
+                // Include amount in the key to prevent mismatches if amount is edited
+                $transferKey = 'transfer_' . $payout->id . '_' . (int)round($payout->amount * 100);
+
                 $transfer = Transfer::create(
                     [
                         'amount'      => (int) round($payout->amount * 100),
@@ -69,7 +72,7 @@ class ProcessStripePayout implements ShouldQueue
                         ],
                     ],
                     [
-                        'idempotency_key' => 'transfer_' . $payout->id,
+                        'idempotency_key' => $transferKey,
                     ]
                 );
 
