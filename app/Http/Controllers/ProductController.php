@@ -344,6 +344,11 @@ class ProductController extends Controller
             return apiError('Product not found.', 404);
         }
 
+        // Check if the authenticated user is the owner of the product
+        if ($product->user_id !== auth()->id()) {
+            return apiError('Unauthorized to edit this product.', 403);
+        }
+
         // Get the product link
         $productLink = $product->product_link;
 
@@ -433,6 +438,10 @@ class ProductController extends Controller
                 return apiError('Product not found.', 404);
             }
 
+            // Check if the authenticated user is the owner of the product
+            if ($product->user_id !== auth()->id()) {
+                return apiError('Unauthorized to edit this product.', 403);
+            }
             // Get the album id
             $albumId = $request->album_id;
 
