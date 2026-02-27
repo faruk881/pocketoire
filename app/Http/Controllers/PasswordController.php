@@ -68,6 +68,10 @@ class PasswordController extends Controller
             if (! $user) {
                 return apiError('Invalid or expired reset token', 422);
             }
+            
+            if(Hash::check($request->password, $user->password)){
+                return apiError('New password cannot be the same as the current password',422);
+            }
 
             // Update the user's password
             $user->update([
@@ -138,6 +142,10 @@ class PasswordController extends Controller
             // Check current password
             if(!Hash::check($request->current_password, $user->password)){
                 return apiError('Current password is incorrect',422);
+            }
+
+            if(Hash::check($request->new_password, $user->password)){
+                return apiError('New password cannot be the same as the current password',422);
             }
 
             // Update to new password
