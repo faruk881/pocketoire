@@ -450,7 +450,7 @@ class StorefrontController extends Controller
 
             
 
-            $featuredStorefronts = Storefront::where('status','approved')->take(8)->get();
+            $featuredStorefronts = Storefront::where('status','approved')->with('user:id,name,profile_photo,cover_photo')->take(8)->get();
 
             $data['products'] = $products;
             $data['featured_storefronts'] = $featuredStorefronts;
