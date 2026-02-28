@@ -39,18 +39,18 @@ class PasswordController extends Controller
             // OTP expired or not generated yet → resend
             if (! $user->otp_expires_at || Carbon::now()->gt($user->otp_expires_at)) {
                 $otpService->sendEmailOtp($user);
-
-                return apiSuccess(
-                    'A verification code has been sent to your email.',['email' => $user->email],
-                    200
-                );
             }
+            return apiSuccess(
+                'A verification code has been sent to your email.',['email' => $user->email],
+                200
+            );
+            
 
             // OTP already valid → block resend
-            return apiError(
-                'A verification code was already sent. Please try again after it expires.',
-                429
-            );
+            // return apiError(
+            //     'A verification code was already sent. Please try again after it expires.',
+            //     429
+            // );
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
         }

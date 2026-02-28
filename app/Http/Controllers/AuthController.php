@@ -35,13 +35,13 @@ class AuthController extends Controller
             // Check if email verified.
             if (! $user->email_verified_at) {
 
-                if ( ! $user->otp_expires_at || Carbon::now()->gt($user->otp_expires_at)) {
-                    $otpService->sendEmailOtp($user);
-                    return apiError('error with mail sending',403);
-                }
+                // if ( ! $user->otp_expires_at || Carbon::now()->gt($user->otp_expires_at)) {
+                //     $otpService->sendEmailOtp($user);
+                //     return apiError('error with mail sending',403);
+                // }
 
                 return apiError(
-                    'Your email address is not verified. A verification code has been sent.',
+                    'Your email address is not verified. Please do password reset to verify your email address.',
                     403
                 );
             }
