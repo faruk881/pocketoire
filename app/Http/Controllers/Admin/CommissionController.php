@@ -225,46 +225,46 @@ class commissionController extends Controller
                 ->get()
                 ->each->append('commission_percent');
 
-            $payouts = Payout::select('id','user_id','wallet_id','amount','currency','method','status','created_at')
-            ->with([
-                'user:id,name,email',
-                'user.storefront:id,user_id,name',
-                'wallet:id,user_id,balance,status,currency'
-            ])
-            ->orderBy('created_at', 'desc') 
-            ->get();
+            // $payouts = Payout::select('id','user_id','wallet_id','amount','currency','method','status','created_at')
+            // ->with([
+            //     'user:id,name,email',
+            //     'user.storefront:id,user_id,name',
+            //     'wallet:id,user_id,balance,status,currency'
+            // ])
+            // ->orderBy('created_at', 'desc') 
+            // ->get();
             
-            $payouts->each(function ($payout) {
-                if ($payout->user) {
-                    $payout->user->append('commission_percent');
-                }
-            });
+            // $payouts->each(function ($payout) {
+            //     if ($payout->user) {
+            //         $payout->user->append('commission_percent');
+            //     }
+            // });
 
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
             // 2. Initialize the Query
-            // $query = Payout::query();
+            $query = Payout::query();
 
-            // // 3. Apply Selective Columns & Relationships
-            // $query->select('id', 'user_id', 'wallet_id', 'amount', 'currency', 'method', 'status', 'created_at')
-            //     ->with([
-            //         'user:id,name,email',
-            //         'user.storefront:id,user_id,name',
-            //         'wallet:id,user_id,balance,status,currency'
-            //     ]);
+            // 3. Apply Selective Columns & Relationships
+            $query->select('id', 'user_id', 'wallet_id', 'amount', 'currency', 'method', 'status', 'created_at')
+                ->with([
+                    'user:id,name,email',
+                    'user.storefront:id,user_id,name',
+                    'wallet:id,user_id,balance,status,currency'
+                ]);
 
-            // // 4. Conditional Filtering
-            // $status = $request->query('status', 'all');
-            // if ($status !== 'all') {
-            //     $query->where('status', $status);
-            // }
+            // 4. Conditional Filtering
+            $status = $request->query('status', 'all');
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
 
-            // // 5. Sorting & Pagination
-            // $payouts = $query->orderByDesc('created_at')
-            //                 ->paginate($request->query('per_page', 15))
-            //                 ->withQueryString();
+            // 5. Sorting & Pagination
+            $payouts = $query->orderByDesc('created_at')
+                            ->paginate($request->query('per_page', 15))
+                            ->withQueryString();
 
-            // // 6. Append Accessors to the Collection
-            // $payouts->getCollection()->each(fn($payout) => $payout->user?->append('commission_percent'));
+            // 6. Append Accessors to the Collection
+            $payouts->getCollection()->each(fn($payout) => $payout->user?->append('commission_percent'));
             ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             // Get active payout threshold
