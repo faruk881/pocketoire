@@ -127,6 +127,8 @@ class CreatorEarningController extends Controller
         // Get the authenticated creator's ID
         $creatorId = auth()->id();
 
+        // pagination
+        $perPage = $request->get('per_page', 10);
         // Base query
         $query = Payout::where('user_id', $creatorId)
         ->select('id', 'user_id', 'wallet_id', 'amount', 'currency', 'method', 'status', 'created_at');
@@ -163,7 +165,7 @@ class CreatorEarningController extends Controller
             $query->whereBetween('created_at', [$start, $end]);
         }
 
-        return apiSuccess('Payouts retrieved.', $query->get());
+        return apiSuccess('Payouts retrieved.', $query->paginate($perPage));
     }
 
     public function storePayoutRequest(Request $request)

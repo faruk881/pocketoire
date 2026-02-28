@@ -71,52 +71,56 @@ class StorefrontController extends Controller
         return apiSuccess('Storefronts retrieved successfully.', $storefronts);
     }
 
-    public function createStorefront(CreateStorefrontRequest $request, StripeService $stripeService) {
+    public function createStorefront(CreateStorefrontRequest $request, StripeService $stripeService) 
+    {
+        try{
+            // Get current user.
+            $user = auth()->user();
 
-        // Get current user.
-        $user = auth()->user();
+            // One storefront per user
+            if ($user->storefront) {
+                return apiError('You already have a storefront.', 403);
+            }
 
-        // One storefront per user
-        if ($user->storefront) {
-            return apiError('You already have a storefront.', 403);
-        }
+            // Fetch Data
+            $data = $request->validated();
 
-        // Fetch Data
-        $data = $request->validated();
+            // null clientSected variable
+            $clientSecret = null;
 
-        // null clientSected variable
-        $clientSecret = null;
+            // -----------------------------
+            // STRIPE (outside transaction)
+            // Create and save stripe customer id
+            // -----------------------------
+            if (! $user->stripe_customer_id) {
+                $stripeCustomer = $stripeService->createCustomer($user);
 
-        // -----------------------------
-        // STRIPE (outside transaction)
-        // Create and save stripe customer id
-        // -----------------------------
-        if (! $user->stripe_customer_id) {
-            $stripeCustomer = $stripeService->createCustomer($user);
+                $user->stripe_customer_id = $stripeCustomer->id;
+                $user->save();
+            }
 
-            $user->stripe_customer_id = $stripeCustomer->id;
-            $user->save();
-        }
 
-        // // Load stripe secrets
-        // \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
+            //
 
-        // // Create setup intent for frontend to save card.
-        // $setupIntent = SetupIntent::create([
-        //     'customer' => $user->stripe_customer_id,
-        //     'payment_method_types' => ['card'],
-        // ]);
+            // // Load stripe secrets
+            // \Stripe\Stripe::setApiKey(config('services.stripe.secret'));
 
-        // // Put the secrets to previously created empty variable
-        // $clientSecret = $setupIntent->client_secret;
+            // // Create setup intent for frontend to save card.
+            // $setupIntent = SetupIntent::create([
+            //     'customer' => $user->stripe_customer_id,
+            //     'payment_method_types' => ['card'],
+            // ]);
 
-        // -----------------------------
-        // DATABASE TRANSACTION
-        // -----------------------------
+            // // Put the secrets to previously created empty variable
+            // $clientSecret = $setupIntent->client_secret;
 
-        DB::beginTransaction();
+            // -----------------------------
+            // DATABASE TRANSACTION
+            // -----------------------------
 
-        try {
+            DB::beginTransaction();
+
+   
             // Create storefront
             $storefront = Storefront::create([
                 'user_id' => $user->id,
