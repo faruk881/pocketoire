@@ -14,6 +14,7 @@ class StripeWebhookController extends Controller
 {
     public function handle(Request $request)
     {
+        Log::info('Stripe webhook received', ['headers' => $request->headers->all(), 'body' => $request->getContent()]);
         // Retrieve the request's body and parse it as JSON
         $payload    = $request->getContent();
         $sigHeader  = $request->header('Stripe-Signature');
@@ -65,6 +66,7 @@ class StripeWebhookController extends Controller
      */
     protected function handleAccountUpdated($account)
     {
+        Log::info('Stripe account.updated received', ['account_id' => $account->id]);
         // Find the user by Stripe account ID
         $user = User::where('stripe_account_id', $account->id)->first();
 
@@ -85,6 +87,7 @@ class StripeWebhookController extends Controller
      */
     protected function handlePayoutPaid($stripePayout)
     {
+        Log::info('Stripe payout.paid received', ['payout_id' => $stripePayout->id]);
         $payout = Payout::where('stripe_payout_id', $stripePayout->id)->first();
 
         if (!$payout || $payout->status === 'completed') {
@@ -105,6 +108,7 @@ class StripeWebhookController extends Controller
      */
     protected function handlePayoutFailed($stripePayout)
     {
+        log::info('Stripe payout.failed received', ['payout_id' => $stripePayout->id]);
         $payout = Payout::where('stripe_payout_id', $stripePayout->id)->first();
         if (!$payout || $payout->status === 'failed') return;
 
@@ -136,6 +140,7 @@ class StripeWebhookController extends Controller
      */
     protected function handlePayoutCanceled($stripePayout)
     {
+        log::info('Stripe payout.canceled received', ['payout_id' => $stripePayout->id]);
         $payout = Payout::where('stripe_payout_id', $stripePayout->id)->first();
         if (!$payout) return;
 

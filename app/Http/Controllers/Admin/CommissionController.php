@@ -201,7 +201,7 @@ class commissionController extends Controller
         }
     }
 
-    public function payoutView(){
+    public function payoutView(Request $request){
         try {
             // Get global commission setting
             $global_commission_percent = CommissionSetting::where('active', true)->first();
@@ -222,11 +222,13 @@ class commissionController extends Controller
                 ->each->append('commission_percent');
 
             $payouts = Payout::select('id','user_id','wallet_id','amount','currency','method','status','created_at')
-                ->with('user:id,name,email')
-                ->with('user.storefront:id,user_id,name')
-                ->with('wallet:id,user_id,balance,status,currency')
-                // ->groupBy('status')
-                ->get();
+            ->with([
+                'user:id,name,email',
+                'user.storefront:id,user_id,name',
+                'wallet:id,user_id,balance,status,currency'
+            ])
+            ->orderBy('created_at', 'desc') 
+            ->get();
             
             $payouts->each(function ($payout) {
                 if ($payout->user) {
@@ -234,7 +236,32 @@ class commissionController extends Controller
                 }
             });
 
-            // $payouts = Payout::get();
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // 2. Initialize the Query
+            // $query = Payout::query();
+
+            // // 3. Apply Selective Columns & Relationships
+            // $query->select('id', 'user_id', 'wallet_id', 'amount', 'currency', 'method', 'status', 'created_at')
+            //     ->with([
+            //         'user:id,name,email',
+            //         'user.storefront:id,user_id,name',
+            //         'wallet:id,user_id,balance,status,currency'
+            //     ]);
+
+            // // 4. Conditional Filtering
+            // $status = $request->query('status', 'all');
+            // if ($status !== 'all') {
+            //     $query->where('status', $status);
+            // }
+
+            // // 5. Sorting & Pagination
+            // $payouts = $query->orderByDesc('created_at')
+            //                 ->paginate($request->query('per_page', 15))
+            //                 ->withQueryString();
+
+            // // 6. Append Accessors to the Collection
+            // $payouts->getCollection()->each(fn($payout) => $payout->user?->append('commission_percent'));
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
             // Get active payout threshold
             $payout_threshold = PayoutThreshold::where('is_active', true)->select('id','minimum_amount','maximum_amount')->first();

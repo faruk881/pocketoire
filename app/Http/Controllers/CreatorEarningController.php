@@ -96,7 +96,7 @@ class CreatorEarningController extends Controller
             ->first();
 
             // Fetch payouts
-            $payouts = Payout::where('user_id', $creatorId)->select('id','user_id','wallet_id','amount','currency','method','status','created_at')->get();
+            $payouts = Payout::where('user_id', $creatorId)->select('id','user_id','wallet_id','amount','currency','method','status','created_at')->orderBy('created_at', 'desc')->get();
 
             // Fetch last payout
             $last_payout = $payouts->sortByDesc('created_at')->first();

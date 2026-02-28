@@ -23,6 +23,7 @@ return new class extends Migration
             $table->enum('status', ['requested','approved','processing','paid','failed','cancelled','rejected','funded'])->default('requested');
 
             $table->string('stripe_payout_id')->nullable();
+            $table->string('transfer_id')->nullable();
             $table->string('external_reference')->nullable(); 
             $table->text('failure_reason')->nullable();
 
