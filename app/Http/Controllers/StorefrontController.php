@@ -77,6 +77,14 @@ class StorefrontController extends Controller
             // Get current user.
             $user = auth()->user();
 
+            if(!$user) {
+                return apiError('Unauthorized', 401);
+            }
+
+            if($user->account_type === 'admin') {
+                return apiError('Admin cannot create storefront.', 403);
+            }
+
             // One storefront per user
             if ($user->storefront) {
                 return apiError('You already have a storefront.', 403);
@@ -253,7 +261,7 @@ class StorefrontController extends Controller
                 $query->when($search, function ($q) use ($search) {
                     return $q->where(function ($subQuery) use ($search) {
                         $subQuery->where('title', 'LIKE', "%{$search}%")
-                                 ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%");
+                                 ->orWhere('viator_product_code', 'LIKE', "%{$search}%");
                     });
                 });
 
@@ -421,7 +429,7 @@ class StorefrontController extends Controller
             $query->when($search, function ($q) use ($search) {
                 return $q->where(function ($subQuery) use ($search) {
                     $subQuery->where('title', 'LIKE', "%{$search}%")
-                             ->orWhere('vaitor_product_code', 'LIKE', "%{$search}%")
+                             ->orWhere('viator_product_code', 'LIKE', "%{$search}%")
                              // Bonus: Search by Store Name too!
                              ->orWhereHas('storefront', function($storeQ) use ($search) {
                                  $storeQ->where('name', 'LIKE', "%{$search}%");

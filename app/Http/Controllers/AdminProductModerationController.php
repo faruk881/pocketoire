@@ -31,6 +31,7 @@ class AdminProductModerationController extends Controller
                 ->when($request->filled('status'), function ($query) use ($status) {
                     $query->where('status', $status);   
                 })
+                ->orderBy('created_at', 'desc') 
                 ->paginate($perPage);
 
             return apiSuccess('Products retrieved successfully.', $products);

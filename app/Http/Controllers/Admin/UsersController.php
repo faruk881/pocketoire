@@ -112,7 +112,7 @@ class UsersController extends Controller
             }
 
             // Paginate the results
-            $creators = $query->paginate($paginate);
+            $creators = $query->orderBy('created_at', 'desc') ->paginate($paginate);
 
             // Return paginated creators
             return apiSuccess(ucfirst($role).'s retrieved successfully.', $creators);

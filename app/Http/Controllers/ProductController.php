@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\EditProductRequest;
+use App\Http\Requests\GetProductRequest;
 use App\Http\Requests\StoreProductRequest;
 use App\Models\Product;
 use App\Models\ProductClick;
@@ -501,8 +502,8 @@ class ProductController extends Controller
         }
     }
 
-    public function getProduct(Request $request)
-    {   
+    public function getProduct(GetProductRequest $request)
+    {  
         try{
             // Get the product link
             $productLink = $request->product_link;

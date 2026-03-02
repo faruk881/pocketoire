@@ -29,12 +29,12 @@ class UpdateCreatorProfileRequest extends FormRequest
             'cover_photo' => [
                 'sometimes','nullable','image','mimes:jpg,jpeg,png,webp','max:4096', // 4MB
             ],
-            'store_name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'store_bio' => ['sometimes', 'nullable', 'string', 'max:1000'],
-            'name' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'storefront_url' => ['sometimes', 'string', 'alpha_dash', 'min:3', 'max:150'],
-            'tiktok_link' => ['sometimes', 'nullable', 'url', 'max:255'],
-            'instagram_link' => ['sometimes', 'nullable', 'url', 'max:255'],
+            'store_name' => ['nullable', 'string', 'max:255'],
+            'store_bio' => ['nullable', 'string', 'max:1000'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'storefront_url' => ['nullable', 'string', 'alpha_dash', 'min:3', 'max:150'],
+            'tiktok_link' => ['nullable', 'url', 'max:255'],
+            'instagram_link' => ['nullable', 'url', 'max:255'],
         ];
     }
 

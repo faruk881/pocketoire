@@ -141,20 +141,24 @@ class PasswordController extends Controller
             $user = auth()->user();
 
             // Check current password
-            if(!Hash::check($request->current_password, $user->password)){
+            if(!Hash::check($request->currentPassword, $user->password)){
                 return apiError('Current password is incorrect',422);
             }
 
-            if(Hash::check($request->new_password, $user->password)){
+            if(Hash::check($request->newPassword, $user->password)){
                 return apiError('New password cannot be the same as the current password',422);
             }
 
             // Update to new password
-            $user->password = $request->new_password;
+            $user->password = $request->newPassword;
             $user->save();
-            $session = request()->user()->currentAccessToken();
-            // Revoke current token
-            $session->delete();
+            // Get current token
+            $currentToken = $user->currentAccessToken();
+
+            // Delete all other tokens except current one
+            $user->tokens()
+                ->where('id', '!=', $currentToken->id)
+                ->delete();
 
             return apiSuccess('Password changed successfully');
         } catch(\Throwable $e){

@@ -22,15 +22,16 @@ class ChangePasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'current_password' => ['required','string'],
-            'new_password' => ['required','string','min:8','confirmed'],
+            'currentPassword' => ['required','string'],
+            'newPassword' => ['required','string','min:8'],
+            'confirmPassword' => ['required','same:newPassword'],
         ];
     }
 
     public function messages()
     {
         return[
-            'current_password.required' => 'Current password is required',
+            'currentPassword.required' => 'Current password is required',
             'new_password.required' => 'New password is required',
             'new_password.min' => 'New password must be at least 8 characters long',
             'new_password.confirmed' => 'New password confirmation does not match'
