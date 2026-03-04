@@ -340,7 +340,13 @@ class ProductController extends Controller
         // Get ithe product id
         $productId = $id;
 
+        $products = Product::all();
+
+        // foreach($products as $singleProduct){
+            
+        
         // Get the product
+        // $product = Product::find($singleProduct->id);
         $product = Product::find($productId);
 
         // Check if product exists
@@ -349,9 +355,9 @@ class ProductController extends Controller
         }
 
         // Check if the authenticated user is the owner of the product
-        if ($product->user_id !== auth()->id()) {
-            return apiError('Unauthorized to edit this product.', 403);
-        }
+        // if ($product->user_id !== auth()->id()) {
+        //     return apiError('Unauthorized to edit this product.', 403);
+        // }
 
         // Get the product link
         $productLink = $product->product_link;
@@ -379,6 +385,14 @@ class ProductController extends Controller
         // Get product details
         $content = $contentResponse->json();
         $priceData = $priceResponse->json();
+
+        $product_url  = $content['productUrl'];
+
+        if(!$product_url) {
+            return apiError('Product URL not found.', 404);
+        }
+
+        $affiliate_url = $this->genAffiliateLink($product_url);
         
         // Delete old images
         foreach ($product->product_images as $image) {
@@ -392,28 +406,13 @@ class ProductController extends Controller
             ->collapse()        // Merge them into one long list of variants
             ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
             ->first()['url'] ?? null;
-
-        // return apiSuccess("",$imageUrl);
-        
-        // $imageUrls = [];
-        // if (!empty($content['images'])) {
-        //     // Use array_slice to get only the first 5 images
-        //     $imagesToProcess = array_slice($content['images'], 0, 5);
-            
-        //     foreach ($imagesToProcess as $image) {
-        //         // Collect high-res variant if available
-        //         $imageUrls[] = $image['variants'][11]['url'] ?? $image['variants'][0]['url'];
-        //     }
-        // }
-     
-
         try{
             $product->update([
                 'title' => $content['title'],
                 'description' => $content['description'],
                 'price'        => $priceData['summary']['fromPrice'] ?? null,
                 'currency'     => $priceData['currency'] ?? 'USD',
-                'product_link' => $productLink,
+                'product_link' => $affiliate_url,
                 'viator_product_code' => $viatorProductCode,
             ]);
         } catch(\Throwable $e){
@@ -425,6 +424,8 @@ class ProductController extends Controller
             'image' => $imageUrl,
             'source' => 'viator',
         ]);
+
+        // }
 
 
 

@@ -15,7 +15,9 @@ use App\Models\Payout;
 use App\Models\PayoutThreshold;
 use App\Models\Sale;
 use App\Models\User;
+use App\Models\ViatorSyncState;
 use App\Models\WalletTransaction;
+use Carbon\Carbon;
 use Illuminate\Container\Attributes\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -141,11 +143,20 @@ class commissionController extends Controller
             // Paginate
             $perPage  = $request->get('per_page', 10);
 
-            // Get latest sales. 
-            // There may multiple bookings with same booking_ref numbers 
-            // For example: confirmed, then edited, then cencelled).
-            // We will get only the latest event 
-            Artisan::call('viator:sync-sales');
+            // Get the page number
+            $page = $request->get('page', 1);
+
+            // Sync sales if it's the first page
+            if($page == 1) {
+
+                // Get latest sales. 
+                // There may multiple bookings with same booking_ref numbers 
+                // For example: confirmed, then edited, then cencelled).
+                // We will get only the latest event 
+                Artisan::call('viator:sync-sales');
+            }
+
+
             // $output = Artisan::output();
             // Log::info('Viator sync output: ' . $output);
             $latestSaleIds = Sale::selectRaw('MAX(id)')->groupBy('booking_ref');
@@ -193,9 +204,16 @@ class commissionController extends Controller
                 }])
                 ->latest('id')
                 ->paginate($perPage);
+            
+            // Prepare the data
+            $data = [
+                'sales' => $sales,
+            ];
+
+
 
             // return sales
-            return apiSuccess('All commissions loaded.', ['sales' => $sales]);
+            return apiSuccess('All commissions loaded.', $data);
         } catch (\Exception $e) {
             return apiError('An error occurred: ' . $e->getMessage());
         }
