@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
+            $table->string('slug')->unique();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('storefront_id')->constrained()->cascadeOnDelete();
             $table->foreignId('album_id')->nullable()->constrained()->nullOnDelete();

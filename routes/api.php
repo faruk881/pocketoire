@@ -41,7 +41,14 @@ Route::get('/privacy-policy',[SettingsController::class,'getPrivacyPolicy'])->na
 Route::get('/storefronts',[StorefrontController::class,'getStorefronts'])->name('storefronts.get');
 Route::get('/products',[StorefrontController::class,'storefrontProducts'])->name('storefront.products.get');
 Route::get('/products/featured',[StorefrontController::class,'storefrontFeaturedProducts'])->name('storefront.featured.products.get');
+
 Route::get('/products/{id}',[StorefrontController::class,'storefrontSingleProduct'])->name('storefront.single.products.get');
+
+Route::group(['prefix' => 'v2'], function() {
+    Route::get('/storefront/{slug}/profile',[StorefrontController::class,'storefrontPublicProfileV2']);
+    Route::get('/products/{slug}',[StorefrontController::class,'storefrontSingleProductV2'])->name('storefront.single.products.get');
+
+});
 Route::get('/storefront/{id}/profile',[StorefrontController::class,'storefrontPublicProfile']);
 
 // Stripe Webhook Route

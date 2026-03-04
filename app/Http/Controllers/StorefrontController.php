@@ -11,6 +11,7 @@ use App\Models\Album;
 use App\Models\Product;
 use App\Models\RecentViews;
 use App\Models\Storefront;
+use App\Models\User;
 use App\Services\StripeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -26,7 +27,7 @@ class StorefrontController extends Controller
             $search  = $request->get('search');
             $sort    = $request->get('sort'); // <--- Changed from $filter
 
-            $query = Storefront::select('id', 'user_id', 'name', 'bio',)
+            $query = Storefront::select('id', 'user_id', 'name', 'bio','slug')
                 ->where('status', 'approved')
                 ->withCount(['products as total_products' => function ($q) {
                     $q->where('status','approved');
@@ -394,6 +395,116 @@ class StorefrontController extends Controller
 
         return apiSuccess('Storefront profile retrieved successfully.', $data);
     }
+    public function storefrontPublicProfileV2(SearchProductRequest $request, $slug) {
+        try {
+
+            // Get the storefront
+            $storefront = Storefront::where('slug',$slug)->first();
+
+            // Check if storefront exists
+            if(!$storefront) {
+                return apiError('Storefront not found',409);
+            }
+
+            // Get the user
+            $user = $storefront->user;
+
+            // Check if storefront exists
+            if (!$user->storefront) {
+                return apiError('Storefront not found',409);
+            }
+
+            // For check if there's group by album request
+            $groupByAlbum = $request->boolean('group_by_album'); 
+            
+            // Get other requests for check
+            $perPage  = $request->get('per_page', 10);
+            $search   = $request->get('search');
+            $sort     = $request->get('sort');
+            $minPrice = $request->get('min_price');
+            $maxPrice = $request->get('max_price');
+
+            // Prepare Common Profile Data
+            $data = [
+                'profile' => [
+                    'store_name'    => $user->storefront->name,
+                    'bio'           => $user->storefront->bio,
+                    'profile_photo' => $user->profile_photo,
+                    'cover_photo'   => $user->cover_photo,
+                    'store_slug'    => $user->storefront->slug,
+                    'instagram'     => $user->storefront->instagram_link,
+                    'tiktok'        => $user->storefront->tiktok_link,
+                    'total_products'=> Product::where('storefront_id', $user->storefront->id)->where('status','approved')->count(),
+                ]
+            ];
+
+            // Check of there is group by album request then it will show in categorized
+            if ($groupByAlbum) {
+                $albums = Album::where('storefront_id', $user->storefront->id)
+                    ->with(['products' => function ($q) {
+                        $q->where('status', 'approved')
+                        ->latest();
+                    }])
+                    ->get();
+
+                // Transform trackable links inside Albums
+                $albums->each(function($album) {
+                    $album->products->transform(function($product) {
+                        $product->product_link = route('product.track', ['id' => $product->id]);
+                        return $product;
+                    });
+                });
+
+                $data['albums'] = $albums;
+
+            } else {
+                //Fetch All Products (Flat List) ---
+                $query = Product::where('storefront_id', $user->storefront->id)
+                    ->where('status','approved')
+                    ->with('product_image')
+                    ->withCount('clicks')
+                    ->withCount('sales')
+                    ->withSum('sales','creator_commission');
+
+                // Filters
+                $query->when($minPrice, fn($q) => $q->where('price', '>=', $minPrice));
+                $query->when($maxPrice, fn($q) => $q->where('price', '<=', $maxPrice));
+                
+                $query->when($search, function ($q) use ($search) {
+                    return $q->where(function ($subQuery) use ($search) {
+                        $subQuery->where('title', 'LIKE', "%{$search}%")
+                                 ->orWhere('viator_product_code', 'LIKE', "%{$search}%");
+                    });
+                });
+
+                // Sorting
+                $query->when($sort, function ($q) use ($sort) {
+                    switch ($sort) {
+                        case 'price_low':  return $q->orderBy('price', 'asc');
+                        case 'price_high': return $q->orderBy('price', 'desc');
+                        case 'title_asc':  return $q->orderBy('title', 'asc');
+                        default:           return $q->orderByDesc('created_at');
+                    }
+                });
+
+                // Final result
+                $products = $query->paginate($perPage);
+
+                // Transform: Add Link & Ensure Clicks are visible
+                $products->getCollection()->transform(function ($product) {
+                    $product->product_link = route('product.track', ['id' => $product->id]);
+                    return $product;
+                });
+
+                $data['products'] = $products;
+            }
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+
+        return apiSuccess('Storefront profile retrieved successfully.', $data);
+    }
 
 
     public function storefrontProducts(SearchProductRequest $request) {
@@ -539,6 +650,68 @@ class StorefrontController extends Controller
                         'viewed_at' => now()
                     ]);
                 }
+
+
+            // Prepare Data
+            $data = [
+                'product' => $product,
+                'related_products' => $related,
+                'is_auth' => auth()->check()
+            ];
+
+            return apiSuccess('Product details retrieved successfully.', $data);
+
+
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+        
+    }
+    public function storefrontSingleProductV2($slug) {
+        try {
+
+            // Get Product
+            $product = Product::with([
+                'storefront:id,user_id,slug,name,bio',
+                'storefront.user:id,name,profile_photo,cover_photo',
+                'product_image:id,product_images.product_id,image,source' 
+            ])
+
+            // Check if the product is saved by current user.
+            ->when(auth('sanctum')->check(), function ($q) {
+                $q->withExists([
+                    'savedByUsers as is_saved' => fn ($q) =>
+                        $q->where('saved_products.user_id', auth('sanctum')->id())
+                ]);
+            })
+            ->where('slug', $slug)->first();
+
+            // Check if product presents
+            if (!$product) {
+                return apiError('Product not found.', 404);
+            }
+
+            // Add trackable link to the product
+            $product->product_link = route('product.track', ['id' => $product->id]);
+
+            // Load Related Products
+            $related = Product::where('storefront_id', $product->storefront_id)
+                ->where('slug', '!=', $slug)
+                ->with('product_image')
+                ->limit(4)
+                ->get()
+                ->transform(function ($product) {
+                    $product->product_link = route('product.track', ['id' => $product->id]);
+                    return $product;
+                });
+
+                // if(auth()->check()){
+                //     RecentViews::create([
+                //         'user_id' => auth()->id(),
+                //         'product_id' => $id,
+                //         'viewed_at' => now()
+                //     ]);
+                // }
 
 
             // Prepare Data
