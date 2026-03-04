@@ -233,9 +233,12 @@ class ProductController extends Controller
                         .'?'.http_build_query([
                             'mcid' => $query['mcid'],
                             'pid'  => $query['pid'],
+                            'target_lander' => 'NONE',
+                            'medium' => 'api',
+                            'campaign' => 'creator_'.auth()->user()->id,
                         ]);
 
-        return $affiliateUrl.'&medium=api&campaign=creator_'.auth()->user()->id;
+        return $affiliateUrl;
     }
     
 
