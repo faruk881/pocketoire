@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('storefront_id')->constrained()->cascadeOnDelete();
             $table->foreignId('album_id')->nullable()->constrained()->nullOnDelete();
+            $table->enum('source', ['viator', 'expedia']);
             $table->string('title')->nullable();
             $table->text('description')->nullable();
             $table->decimal('price', 10, 2)->nullable();

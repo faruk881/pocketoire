@@ -22,7 +22,8 @@ class GetProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'product_link' => ['required', 'url', 'regex:/viator\.com\/.*\/(?:d\d+-|p-)[^\/\?]+/'],
+            // 'product_link' => ['required', 'url', 'regex:/viator\.com\/.*\/(?:d\d+-|p-)[^\/\?]+/'],
+                'product_link' => ['required','regex:/^https?:\/\/(.*viator\.com|.*expedia\.com)/i'],
         ];
     }
 

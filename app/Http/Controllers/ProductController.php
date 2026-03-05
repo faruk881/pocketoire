@@ -244,92 +244,150 @@ class ProductController extends Controller
 
     public function storeProduct(StoreProductRequest $request){
         try {
+
+            $product_link = $request->product_url;
+            if (Str::contains($product_link, 'viator.com')) {
     
-            // Get the product link
-            $productLink = $request->product_url;
-            $productName = $request->product_name;
-            $productDescription = $request->description;
-            $albumId = $request->album_id;
-            $imageUrl = $request->image_url;
+                // Get the product link
+                $productLink = $request->product_url;
+                $productName = $request->product_name;
+                $productDescription = $request->description;
+                $albumId = $request->album_id;
+                $imageUrl = $request->image_url;
 
 
-            // Check if product exists
-            $viatorProductCode = $this->extractViatorProductId($productLink);
-            if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
-                return apiError('This product already exists.', 409);
-            }
+                // Check if product exists
+                $viatorProductCode = $this->extractViatorProductId($productLink);
+                if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
+                    return apiError('This product already exists.', 409);
+                }
 
-            // Check for valid album id
-            $albumExists = auth()->user()
-                ->storefront
-                ->albums()
-                ->where('id', $albumId)
-                ->exists();
+                // Check for valid album id
+                $albumExists = auth()->user()
+                    ->storefront
+                    ->albums()
+                    ->where('id', $albumId)
+                    ->exists();
 
-            if (! $albumExists) {
-                return apiError('Invalid album selected', 403);
-            }
-
-
-            // Fetch Product Content (Name & Description)
-            $contentResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept-Language' => 'en-US',
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
-
-            // Fetch Pricing Schedule (Lowest Price)
-            $priceResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
+                if (! $albumExists) {
+                    return apiError('Invalid album selected', 403);
+                }
 
 
-            // Get product details
-            $content = $contentResponse->json();
+                // Fetch Product Content (Name & Description)
+                $contentResponse = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept-Language' => 'en-US',
+                    'Accept' => 'application/json;version=2.0',
+                ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
 
-            // Get product price details
-            $priceData = $priceResponse->json();
+                // Fetch Pricing Schedule (Lowest Price)
+                $priceResponse = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept' => 'application/json;version=2.0',
+                ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
 
 
-            // Save details to database
-            $product = Product::create([
-                'user_id' => auth()->user()->id,
-                'storefront_id' => auth()->user()->storefront->id,
-                'album_id' => $albumId,
-                // 'title' => $content['title'],
-                'title' => $productName,
-                // 'description' => $content['description'],
-                'description' => $productDescription,
-                'price'        => $priceData['summary']['fromPrice'] ?? null,
-                'currency'     => $priceData['currency'] ?? 'USD',
-                'product_link' => $productLink,
-                'viator_product_code' => $viatorProductCode,
-            ]);
+                // Get product details
+                $content = $contentResponse->json();
 
-            // Check if there is image
+                // Get product price details
+                $priceData = $priceResponse->json();
 
-            if ($request->hasFile('image') && $request->file('image')->isValid()) {
 
-                // Save the image to storage and get the path.
-                $path = $request->file('image')->store('product_images', 'public');
-
-                // Save the image to database
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image'      => $path,
-                    'source'     => 'upload',
-                ]);
-            } else {
-
-                // Save the image to database
-                ProductImage::create([
-                    'product_id' => $product->id,
-                    'image' => $imageUrl,
+                // Save details to database
+                $product = Product::create([
+                    'user_id' => auth()->user()->id,
+                    'storefront_id' => auth()->user()->storefront->id,
+                    'album_id' => $albumId,
                     'source' => 'viator',
+                    // 'title' => $content['title'],
+                    'title' => $productName,
+                    // 'description' => $content['description'],
+                    'description' => $productDescription,
+                    'price'        => $priceData['summary']['fromPrice'] ?? null,
+                    'currency'     => $priceData['currency'] ?? 'USD',
+                    'product_link' => $productLink,
+                    'viator_product_code' => $viatorProductCode,
                 ]);
+
+                // Check if there is image
+
+                if ($request->hasFile('image') && $request->file('image')->isValid()) {
+
+                    // Save the image to storage and get the path.
+                    $path = $request->file('image')->store('product_images', 'public');
+
+                    // Save the image to database
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image'      => $path,
+                        'source'     => 'upload',
+                    ]);
+                } else {
+
+                    // Save the image to database
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image' => $imageUrl,
+                        'source' => 'viator',
+                    ]);
+                }
+                return apiSuccess('The product inserted successfully.', $product);
             }
-            return apiSuccess('The product inserted successfully.', $product);
+            if (Str::contains($product_link, 'expedia.com')) {
+    
+                // Get the product link
+                $productLink = $request->product_url;
+                $productName = $request->product_name;
+                $productDescription = $request->description;
+                $albumId = $request->album_id;
+                $imageUrl = $request->image_url;
+
+                // Check for valid album id
+                $albumExists = auth()->user()
+                    ->storefront
+                    ->albums()
+                    ->where('id', $albumId)
+                    ->exists();
+
+                if (! $albumExists) {
+                    return apiError('Invalid album selected', 403);
+                }
+
+                // Save details to database
+                $product = Product::create([
+                    'user_id' => auth()->user()->id,
+                    'storefront_id' => auth()->user()->storefront->id,
+                    'album_id' => $albumId,
+                    'source' => 'expedia',
+                    // 'title' => $content['title'],
+                    'title' => $productName,
+                    // 'description' => $content['description'],
+                    'description' => $productDescription,
+                    'price'        => 0,
+                    'currency'     => 'USD',
+                    'product_link' => $productLink,
+                    'viator_product_code' => null,
+                ]);
+
+                // Check if there is image
+
+                if ($request->hasFile('image') && $request->file('image')->isValid()) {
+
+                    // Save the image to storage and get the path.
+                    $path = $request->file('image')->store('product_images', 'public');
+
+                    // Save the image to database
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'image'      => $path,
+                        'source'     => 'upload',
+                    ]);
+                }
+                return apiSuccess('The product inserted successfully.', $product);
+            }
+
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
         }
@@ -511,73 +569,134 @@ class ProductController extends Controller
         try{
             // Get the product link
             $productLink = $request->product_link;
-        
-            // Check if product exists
-            $viatorProductCode = $this->extractViatorProductId($productLink);
-            if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
-                return apiError('This product already exists.', 409);
-            }
 
-            // 1. Fetch Product Content (Name & Description)
-            $contentResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept-Language' => 'en-US',
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
+            if (Str::contains($productLink, 'viator.com')) {
+                // Check if product exists
+                $viatorProductCode = $this->extractViatorProductId($productLink);
+                if (Product::where('viator_product_code', $viatorProductCode)->exists()) {
+                    return apiError('This product already exists.', 409);
+                }
+
+                // 1. Fetch Product Content (Name & Description)
+                $contentResponse = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept-Language' => 'en-US',
+                    'Accept' => 'application/json;version=2.0',
+                ])->get("{$this->baseUrl}/partner/products/{$viatorProductCode}");
+                
+                // Check the valid response
+                if (! $contentResponse->successful()) {
+                    return apiError(
+                        'Failed to fetch product from Viator. ',
+                        $contentResponse->status()
+                    );
+                }
+
+                // 2. Fetch Pricing Schedule (Lowest Price)
+                $priceResponse = Http::withHeaders([
+                    'exp-api-key' => $this->apiKey,
+                    'Accept' => 'application/json;version=2.0',
+                ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
+
+
+                // Get product details
+                $content = $contentResponse->json();
+
+                // Get product price details
+                $priceData = $priceResponse->json();
+
+
+                // Get product URL
+                $product_url  = $content['productUrl'];
+
+                if(!$product_url) {
+                    return apiError('Product URL not found.', 404);
+                }
+
+                $affiliate_url = $this->genAffiliateLink($product_url);
+
+                $imageUrls = [];
+
+                $imageUrls = collect($content['images'] ?? [])
+                    ->pluck('variants') // Get all variant arrays
+                    ->collapse()        // Merge them into one long list of variants
+                    ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
+                    ->first()['url'] ?? null;
+
+                // Extracting only the data you requested
+                $data = [
+                    'product_source' => 'viator',
+                    'product_name' => $content['title'] ?? 'N/A',
+                    'description'  => $content['description'] ?? 'N/A',
+                    // 'fromPrice' is the lowest lead price available for this product
+                    'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
+                    'currency'     => $priceData['currency'] ?? NULL,
+                    'product_url' => $affiliate_url,
+                    'image_url'    => $imageUrls,
+                    'albums' => auth()->user()->storefront->albums,
+                    // 'all_images'   => $content['images'],
+                ];
+
+                return apiSuccess('Product details fetched successfully.', $data);
+            } 
             
-            // Check the valid response
-            if (! $contentResponse->successful()) {
-                return apiError(
-                    'Failed to fetch product from Viator. ',
-                    $contentResponse->status()
-                );
+            if (Str::contains($productLink, 'expedia.com')) {
+
+                $url = $request->product_link;
+
+                // List of affiliate parameters to remove
+                $affiliateKeys = ['clickref', 'affcid', 'ref_id', 'my_ad', 'afflid', 'affdtl'];
+
+                // Parse the URL
+                $parsed = parse_url($url);
+
+                // Parse existing query params if any
+                $query = [];
+                if (isset($parsed['query'])) {
+                    parse_str($parsed['query'], $query);
+
+                    // Remove existing affiliate parameters
+                    foreach ($affiliateKeys as $key) {
+                        unset($query[$key]);
+                    }
+                }
+
+                // Rebuild the base URL without affiliate parameters
+                $baseUrl = $parsed['scheme'] . '://' . $parsed['host'] . $parsed['path'];
+                if (!empty($query)) {
+                    $baseUrl .= '?' . http_build_query($query);
+                }
+
+                // Static affiliate parameters
+                $publisherId = '1100l417753';
+                $newAffiliateParams = [
+                    'affcid' => "US.DIRECT.PHG.$publisherId.0",
+                    'my_ad'  => "AFF.US.DIRECT.PHG.$publisherId.0",
+                    'affdtl' => "PHG.1101lCnjXQmh.DCARLGqw6K", // creatorId inside affdtl
+                    'adref'  => 'creator_' . auth()->user()->id, // custom tracking
+                ];
+
+                // Decide separator for appending new params
+                $separator = Str::contains($baseUrl, '?') ? '&' : '?';
+
+                // Final affiliate link
+                $affiliate_url = $baseUrl . $separator . http_build_query($newAffiliateParams);
+
+                $data = [
+                    'product_source' => 'expedia',
+                    'product_name'   => null,
+                    'description'    => null,
+                    'price'          => "",
+                    'currency'       => "USD",
+                    'product_url'    => $affiliate_url,
+                    'image_url'      => null,
+                    'albums'         => auth()->user()->storefront->albums,
+                ];
+
+                return apiSuccess('Expedia affiliate link generated successfully.', $data);
             }
-
-            // 2. Fetch Pricing Schedule (Lowest Price)
-            $priceResponse = Http::withHeaders([
-                'exp-api-key' => $this->apiKey,
-                'Accept' => 'application/json;version=2.0',
-            ])->get("{$this->baseUrl}/partner/availability/schedules/{$viatorProductCode}");
-
-
-            // Get product details
-            $content = $contentResponse->json();
-
-            // Get product price details
-            $priceData = $priceResponse->json();
-
-
-            // Get product URL
-            $product_url  = $content['productUrl'];
-
-            if(!$product_url) {
-                return apiError('Product URL not found.', 404);
-            }
-
-            $affiliate_url = $this->genAffiliateLink($product_url);
-
-            $imageUrls = [];
-
-            $imageUrls = collect($content['images'] ?? [])
-                ->pluck('variants') // Get all variant arrays
-                ->collapse()        // Merge them into one long list of variants
-                ->sortByDesc(fn($v) => ($v['width'] ?? 0) * ($v['height'] ?? 0))
-                ->first()['url'] ?? null;
-
-            // Extracting only the data you requested
-            $data = [
-                'product_name' => $content['title'] ?? 'N/A',
-                'description'  => $content['description'] ?? 'N/A',
-                // 'fromPrice' is the lowest lead price available for this product
-                'price'        => $priceData['summary']['fromPrice'] ?? 'Contact for price',
-                'currency'     => $priceData['currency'] ?? 'USD',
-                'product_url' => $affiliate_url,
-                'image_url'    => $imageUrls,
-                'albums' => auth()->user()->storefront->albums,
-                // 'all_images'   => $content['images'],
-            ];
-
-            return apiSuccess('Product details fetched successfully.', $data);
+        
+            
         } catch(\Throwable $e){
             return apiError($e->getMessage());
         }
