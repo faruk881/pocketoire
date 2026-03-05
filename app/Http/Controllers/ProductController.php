@@ -300,6 +300,7 @@ class ProductController extends Controller
                     'user_id' => auth()->user()->id,
                     'storefront_id' => auth()->user()->storefront->id,
                     'album_id' => $albumId,
+                    'slug' =>Str::slug($productName),
                     'source' => 'viator',
                     // 'title' => $content['title'],
                     'title' => $productName,
@@ -360,6 +361,7 @@ class ProductController extends Controller
                     'user_id' => auth()->user()->id,
                     'storefront_id' => auth()->user()->storefront->id,
                     'album_id' => $albumId,
+                    'slug' =>Str::slug($productName),
                     'source' => 'expedia',
                     // 'title' => $content['title'],
                     'title' => $productName,
@@ -467,6 +469,7 @@ class ProductController extends Controller
         try{
             $product->update([
                 'title' => $content['title'],
+                'slug' =>Str::slug($content['title']),
                 'description' => $content['description'],
                 'price'        => $priceData['summary']['fromPrice'] ?? null,
                 'currency'     => $priceData['currency'] ?? 'USD',
@@ -494,7 +497,7 @@ class ProductController extends Controller
     public function editProduct(EditProductRequest $request, $id) {
         try {
             // Find the product
-            $product = Product::find($id);
+            $product = Product::where('id', $id)->first();
 
             // Check if product exists
             if (!$product) {
@@ -507,6 +510,23 @@ class ProductController extends Controller
             }
             // Get the album id
             $albumId = $request->album_id;
+            $title = $request->product_name;
+            $description = $request->description;
+
+            if($request->filled('product_name')){
+                $product->update([
+                    'title' => $title,
+                    'slug' =>Str::slug($title),
+                ]);
+            }
+
+            if($request->filled('description')){
+                $product->update([
+                    'description' => $description,
+                ]);
+            }
+
+
 
             // check for valid and authorized album if album id provided
             if ($request->filled('album_id')) {
@@ -557,7 +577,7 @@ class ProductController extends Controller
                 ]);
             }
 
-            return apiSuccess('Product image updated successfully.', $product);
+            return apiSuccess('Product updated successfully.', $product);
 
         } catch (\Throwable $e) {
             return apiError($e->getMessage());
