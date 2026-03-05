@@ -74,6 +74,10 @@ class User extends Authenticatable
         return $this->hasMany(Sale::class);
     }
 
+    public function expedia_sales() {
+        return $this->hasMany(ExpediaSale::class);
+    }
+
     public function wallet() {
         return $this->hasOne(Wallet::class);
     }

@@ -16,6 +16,7 @@ return new class extends Migration
             
             $table->foreignId('wallet_id')->constrained()->cascadeOnDelete();
             $table->foreignId('sale_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('expedia_sale_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('type',['credit','debit','adjustment'])->index();
             $table->enum('source',['sale_commission','refund','adjustment','payout','payout_request','payout_failed','payout_canceled'])->index();
             $table->decimal('amount', 12, 2)->unsigned();

@@ -11,6 +11,7 @@ use App\Http\Controllers\CreatorDashboardHomeController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
 use App\Http\Controllers\EmailVerificationController;
+use App\Http\Controllers\ExpediaCommissionController;
 use App\Http\Controllers\HomePage\ContactMessageController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProductController;
@@ -138,8 +139,16 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     
     
     Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
+    
+    // For viator sales commission
     Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
     Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
+
+    // For expedia sales commission
+    Route::post('/admin/creator/add-expedia-commission',[ExpediaCommissionController::class,'addExpediacommission']);
+    Route::get('/admin/creator/view-expedia-commission',[ExpediaCommissionController::class,'viewExpediacommission']);
+    Route::get('/admin/creator/get-expedia-products',[ExpediaCommissionController::class,'getExpediaProducts']);
+
 
     // Payouts Management
     Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');

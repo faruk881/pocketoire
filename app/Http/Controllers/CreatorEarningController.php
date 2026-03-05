@@ -108,7 +108,7 @@ class CreatorEarningController extends Controller
                 'total_paid_this_month' => (float) $totalPaidThisMonth,
                 'total_paid_previous_months' => (float) $totalPaidLastMonth,
                 'monthly_payout_percentage_change' => $percentageChange,
-                'products' => $products,
+                'products' => $products,    
                 'wallet'   => $wallet,
                 'payouts'  => $payouts,
                 'last_payout' => $last_payout,
