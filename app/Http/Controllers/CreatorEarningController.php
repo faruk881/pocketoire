@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ExpediaSale;
 use App\Models\Payout;
+use App\Models\PayoutThreshold;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Wallet;
@@ -132,7 +133,7 @@ class CreatorEarningController extends Controller
             // merge expedia products into products
             $products = $products->merge($expedia_products)->values();
 
-            
+
             // Fetch wallet and payouts
             $wallet = Wallet::where('user_id', $creatorId)
             ->select('balance','currency','status')                
@@ -220,7 +221,12 @@ class CreatorEarningController extends Controller
         ]);
 
         // Minimum payout amount
-        $minAmount = 50; // Minimum payout amount in USD
+
+        $payouThrseholds = PayoutThreshold::where('is_active', true)->first();
+
+        $minAmount = $payouThrseholds->minimum_amount;
+        $maxAmount = $payouThrseholds->maximum_amount;
+
 
         // Get user and wallet
         $user   = auth()->user();
@@ -244,6 +250,11 @@ class CreatorEarningController extends Controller
         // Check minimum payout amount
         if( $request->amount < $minAmount ) {
             return apiError('Minimum payout amount is '.$minAmount.' USD', 422);
+        }
+
+        // Check maximum payout amount
+        if( $request->amount > $maxAmount ) {
+            return apiError('The maximum payout amount is '.$maxAmount.' USD', 422);
         }
 
         // Start transaction

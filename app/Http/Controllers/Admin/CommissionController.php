@@ -318,6 +318,20 @@ class commissionController extends Controller
             return apiError('Payout not found', 404);
         }
 
+        // check if for duplicate rejected payouts
+        if($payout->status === 'rejected' && $request->action === 'reject') {
+            return apiError('The payout already '.$payout->status);
+        }
+        // check for duplicate approved payout
+        if(
+            $payout->status === 'approved' 
+            // || $payout->status === 'processing' 
+            || $payout->status === 'paid' 
+            // || $payout->status === 'funded' 
+            && $request->action === 'approve') {
+            return apiError('The payout already '.$payout->status);
+        }
+
         // Prevent double handling
         if ($payout->status !== 'requested') {
             return apiError('This payout can no longer be modified', 409);

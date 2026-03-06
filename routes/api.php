@@ -112,7 +112,7 @@ Route::middleware(['auth:sanctum','creator'])->group(function(){
     // payment Earnings
     Route::get('/creator/earnings',[CreatorEarningController::class,'getCreatorEarnings']);
     Route::get('/creator/earnings/payouts',[CreatorEarningController::class,'getCreatorPayouts']);
-    Route::post('/creator/payouts',[CreatorEarningController::class,'storePayoutRequest']);
+    Route::post('/creator/earnings/payouts',[CreatorEarningController::class,'storePayoutRequest']);
 
     // Payment Payouts
     Route::post('/stripe/connect/onboard',[StripeConnectController::class,'stripeOnboard'])->name('creator.stripe.onboard');
