@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExpediaSale;
 use App\Models\Payout;
 use App\Models\Product;
 use App\Models\Sale;
@@ -59,11 +60,12 @@ class CreatorEarningController extends Controller
             // Format to 2 decimal places
             $percentageChange = round($percentageChange, 2);
 
-            // Fetch sales data for the creator
+            // (Viator products) Fetch sales data for the creator 
             $sales = Sale::query()
                 ->where('sales.user_id', $creatorId)
                 ->whereIn('sales.status', ['confirmed', 'amended']) 
                 ->leftJoin('products', 'sales.product_id', '=', 'products.id')
+                ->leftJoin('product_clicks', 'products.id', '=', 'product_clicks.product_id')
                 ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
                 ->selectRaw('
                     sales.product_code,
@@ -71,6 +73,7 @@ class CreatorEarningController extends Controller
                     products.title,
                     MIN(product_images.image) as main_image,
                     COUNT(sales.id) as total_conversions,
+                    COUNT(DISTINCT product_clicks.id) as total_clicks,
                     SUM(sales.creator_commission) as total_earnings
                 ')
                 ->groupBy(
@@ -80,16 +83,56 @@ class CreatorEarningController extends Controller
                 )
                 ->get();
 
-            // Prepare the response data
+            // (Viator Products )Prepare the response data
             $products = $sales->map(fn ($row) => [
                 'id' => $row->product_id,               // NULL if product missing
                 'product_code' => $row->product_code,   // ALWAYS available
                 'title' => $row->title ?? 'Unlisted Product',
                 'main_image' => $row->main_image,
                 'total_conversions' => (int) $row->total_conversions,
-                'total_clicks' => 0, // clicks impossible without product
+                'total_clicks' => (int) $row->total_clicks,
                 'total_earnings' => (float) $row->total_earnings,
             ]);
+
+            // Fetch wallet and payouts
+            $wallet = Wallet::where('user_id', $creatorId)
+            ->select('balance','currency','status')                
+            ->first();
+
+            // (Expedia products) Fetch sales data for the creator 
+            $expedia_sales = ExpediaSale::query()
+                ->where('expedia_sales.user_id', $creatorId)
+                ->leftJoin('products', 'expedia_sales.product_id', '=', 'products.id')
+                ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
+                ->leftJoin('product_clicks', 'products.id', '=', 'product_clicks.product_id')
+                ->selectRaw('
+                    products.id as product_id,
+                    products.title,
+                    MIN(product_images.image) as main_image,
+                    COUNT(expedia_sales.id) as total_conversions,
+                    COUNT(DISTINCT product_clicks.id) as total_clicks,
+                    SUM(expedia_sales.creator_commission) as total_earnings
+                ')
+                ->groupBy(
+                    'products.id',
+                    'products.title'
+                )
+                ->get();
+
+            // (Viator Products )Prepare the response data
+            $expedia_products = $expedia_sales->map(fn ($row) => [
+                'id' => $row->product_id,               // NULL if product missing
+                'title' => $row->title ?? 'Unlisted Product',
+                'main_image' => $row->main_image,
+                'total_conversions' => (int) $row->total_conversions,
+                'total_clicks' => (int) $row->total_clicks,
+                'total_earnings' => (float) $row->total_earnings,
+            ]);
+
+            // merge expedia products into products
+            $products = $products->merge($expedia_products)->values();
+
+            
             // Fetch wallet and payouts
             $wallet = Wallet::where('user_id', $creatorId)
             ->select('balance','currency','status')                
@@ -103,6 +146,7 @@ class CreatorEarningController extends Controller
 
             // Prepare the response data
             $data = [
+                'expedia_sales' => $expedia_products,
                 'total_paid_amounts' => (float) $totalPaidAmounts,
                 'pending_payouts_amount' => (float) $pendingPayoutsAmounts,
                 'total_paid_this_month' => (float) $totalPaidThisMonth,
