@@ -13,6 +13,21 @@ use Illuminate\Support\Facades\DB;
 
 class ExpediaCommissionController extends Controller
 {
+
+    public function viewExpediacommission(Request $request) {
+        try {
+            // Pagination
+            $per_page = $request->get('per_page', 10);
+
+            // Get sales
+            $expedia_sale = ExpediaSale::with('product')->paginate($per_page);
+
+            // return
+            return apiSuccess('Expedia commission retrieved successfully.', $expedia_sale);
+        } catch (\Throwable $e) {
+            return apiError($e->getMessage());
+        }
+    }
     public function getExpediaProducts() {
         try {
             $expediaProducts = Product::where('status','approved')
