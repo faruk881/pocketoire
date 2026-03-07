@@ -1,38 +1,54 @@
 services:
+  # PHP-FPM Container
   app:
-    build: .
-    container_name: pocketoire
-    ports:
-      - "8000:80"
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: pocketoire_backend_app
     volumes:
       - .:/var/www/html
     depends_on:
       - db
 
+  # Nginx Container
+  web:
+    image: nginx:alpine
+    container_name: pocketoire_backend_web
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+
+  # MySQL Container
   db:
     image: mysql:8.0
-    container_name: pocketoire_db
+    container_name: pocketoire_backend_db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: 7788
-      MYSQL_DATABASE: myapp
-      MYSQL_USER: myuser
+      MYSQL_DATABASE: pocketoire_backend_db
+      MYSQL_USER: pocketoire_user
       MYSQL_PASSWORD: mypassword
     ports:
       - "3307:3306"
     volumes:
       - dbdata:/var/lib/mysql
 
+  # phpMyAdmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: pocketoire_phpmyadmin
+    container_name: pocketoire_backend_phpmyadmin
     restart: always
     ports:
       - "8080:80"
     environment:
       PMA_HOST: db
       MYSQL_ROOT_PASSWORD: 7788
+    depends_on:
+      - db
 
 volumes:
   dbdata:
-
