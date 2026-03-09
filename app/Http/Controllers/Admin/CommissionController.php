@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Stripe\Card;
 
-class commissionController extends Controller
+class CommissionController extends Controller
 {
     public function addCreatorcommission(addcommissionToCreatorRequest $request)
     {

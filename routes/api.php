@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\Admin\commissionController;
+use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\AdminDashboardStatsController;
 use App\Http\Controllers\AdminProductModerationController;
 use App\Http\Controllers\CreatorDashboardHomeController;
@@ -141,8 +141,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::patch('/admin/storefront/{id}/status',[UsersController::class,'updateCreatorStorefrontStatus'])->name('admin.creator.update-storefront-status');
     
     // For viator sales commission
-    Route::post('/admin/creator/add-commission',[commissionController::class,'addCreatorcommission']);
-    Route::get('/admin/creator/view-commission',[commissionController::class,'viewCreatorcommission']);
+    Route::post('/admin/creator/add-commission',[CommissionController::class,'addCreatorcommission']);
+    Route::get('/admin/creator/view-commission',[CommissionController::class,'viewCreatorcommission']);
 
     // For expedia sales commission
     Route::post('/admin/creator/add-expedia-commission',[ExpediaCommissionController::class,'addExpediacommission']);
@@ -151,13 +151,13 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
 
 
     // Payouts Management
-    Route::get('/admin/payouts',[commissionController::class,'payoutView'])->name('admin.payouts.list');
-    Route::patch('/admin/payouts/{id}',[commissionController::class,'updatePayoutStatus'])->name('admin.payouts.update-status');
-    Route::post('/admin/global/commission/update',[commissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
-    Route::post('/admin/custom/commission/create',[commissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
-    Route::put('/admin/custom/commission/{id}/update',[commissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
-    Route::get('/admin/custom/commission/add-view',[commissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
-    Route::post('/admin/payout-thrsehold/update',[commissionController::class,'updatePayoutThreshold'])->name('admin.payout.threshold.update');
+    Route::get('/admin/payouts',[CommissionController::class,'payoutView'])->name('admin.payouts.list');
+    Route::patch('/admin/payouts/{id}',[CommissionController::class,'updatePayoutStatus'])->name('admin.payouts.update-status');
+    Route::post('/admin/global/commission/update',[CommissionController::class,'updateGlobalCommission'])->name('admin.global.commission.update');
+    Route::post('/admin/custom/commission/create',[CommissionController::class,'createCustomCommission'])->name('admin.custom.commission.create');
+    Route::put('/admin/custom/commission/{id}/update',[CommissionController::class,'updateCustomCommission'])->name('admin.custom.commission.update');
+    Route::get('/admin/custom/commission/add-view',[CommissionController::class,'addCustomCommissionView'])->name('admin.custom.commission.add-view');
+    Route::post('/admin/payout-thrsehold/update',[CommissionController::class,'updatePayoutThreshold'])->name('admin.payout.threshold.update');
 
     // Buyer Management
     Route::get('/admin/buyers',[UsersController::class,'getUsers'])->defaults('role','buyer')->name('admin.buyers.list');
