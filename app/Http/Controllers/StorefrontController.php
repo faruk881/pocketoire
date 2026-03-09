@@ -521,7 +521,7 @@ class StorefrontController extends Controller
 
             // 2. Start Query: Search ALL products
             // We use 'with' to fetch the Store and User info efficiently (Eager Loading)
-            $query = Product::where('status','approved')->with(['storefront:id,user_id,name','storefront.user:id,name','product_image']);
+            $query = Product::where('status','approved')->with(['storefront:id,user_id,name,slug','storefront.user:id,name','product_image']);
 
             // --- FILTER BY SPECIFIC STORE (Optional) ---
             $query->when($storefrontId, function ($q) use ($storefrontId) {
