@@ -132,7 +132,9 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::delete('/admin/faq/{id}',[SettingsController::class,'deleteFaq'])->name('admin.faq.delete');
     Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
 
-    Route::get('/admin/contact-messages',[AdminContactMessageController::class,'index'])->name('admin.contact.messages');
+    Route::get('/admin/contact-messages',[AdminContactMessageController::class,'index'])->name('admin.contact.messages.index');
+    Route::patch('/admin/contact-messages/{id}',[AdminContactMessageController::class,'update'])->name('admin.contact.messages.index');
+
 
     // Creator Management
     Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');

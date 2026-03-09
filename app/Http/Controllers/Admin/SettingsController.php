@@ -17,7 +17,13 @@ class SettingsController extends Controller
             ]);
             $terms['updated_by'] = auth()->id();
 
-            Term::updateOrCreate($terms);
+            $originalTerm = Term::first();
+
+            if($originalTerm) {
+                $originalTerm->update($terms);
+            } else {
+                Term::create($terms);
+            }
 
             return apiSuccess('Terms of Service updated successfully.');
         } catch (\Throwable $e) {
@@ -117,7 +123,13 @@ class SettingsController extends Controller
             ]);
             $privacyPolicy['updated_by'] = auth()->id();
 
-            PrivacyPolicy::updateOrCreate($privacyPolicy);
+            $originalPrivacyPolicy = PrivacyPolicy::first();
+            if ($originalPrivacyPolicy) {
+                $originalPrivacyPolicy->update($privacyPolicy);
+            } else {
+                PrivacyPolicy::create($privacyPolicy);
+            }
+
 
             return apiSuccess('Privacy Policy updated successfully.');
         } catch (\Throwable $e) {
