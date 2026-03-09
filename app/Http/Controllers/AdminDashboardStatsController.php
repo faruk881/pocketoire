@@ -71,8 +71,42 @@ class AdminDashboardStatsController extends Controller
             return round((($current - $previous) / $previous) * 100, 2);
         };
 
+
+        // Sales by retailer
         $viatorSales = Sale::whereIn('event_type', ['CONFIRMATION', 'AMENDMENT'])->count();
         $expediaSales = ExpediaSale::count();
+
+
+        // Clicks over time
+        // Date ranges
+// Date ranges
+$startOfWeek = Carbon::now()->startOfWeek();
+$endOfWeek   = Carbon::now()->endOfWeek();
+
+$startOfMonth = Carbon::now()->startOfMonth();
+$endOfMonth   = Carbon::now()->endOfMonth();
+
+// Query clicks grouped by product source
+$clickStats = \App\Models\ProductClick::select('products.source',
+        DB::raw("SUM(CASE WHEN product_clicks.created_at BETWEEN '{$startOfWeek}' AND '{$endOfWeek}' THEN 1 ELSE 0 END) as weekly_clicks"),
+        DB::raw("SUM(CASE WHEN product_clicks.created_at BETWEEN '{$startOfMonth}' AND '{$endOfMonth}' THEN 1 ELSE 0 END) as monthly_clicks")
+    )
+    ->join('products', 'product_clicks.product_id', '=', 'products.id')
+    ->groupBy('products.source')
+    ->get()
+    ->keyBy('source'); // key by source for easy access
+
+// Build clicksOverTime array dynamically
+$clicksOverTime = [
+    'weekly'  => [],
+    'monthly' => []
+];
+
+foreach ($clickStats as $source => $stats) {
+    $clicksOverTime['weekly'][$source]  = $stats->weekly_clicks ?? 0;
+    $clicksOverTime['monthly'][$source] = $stats->monthly_clicks ?? 0;
+}
+
 
 
         $topProducts = Product::withCount('clicks')
@@ -130,6 +164,9 @@ class AdminDashboardStatsController extends Controller
                 'previous_month' => $previous_earnings,
                 'change_percent' => $percentChange($current_earnings, $previous_earnings),
             ],
+
+            'clicks_over_time' => $clicksOverTime,
+
             'sales_by_retailer' => [
                 'viator' => $viatorSales,
                 'expedia' => $expediaSales,
