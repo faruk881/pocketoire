@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\CommissionController;
 use App\Http\Controllers\AdminDashboardStatsController;
 use App\Http\Controllers\AdminProductModerationController;
+use App\Http\Controllers\AdminContactMessageController;
 use App\Http\Controllers\CreatorDashboardHomeController;
 use App\Http\Controllers\CreatorEarningController;
 use App\Http\Controllers\CreatorProfileController;
@@ -130,6 +131,8 @@ Route::middleware(['auth:sanctum','admin'])->group(function(){
     Route::patch('/admin/faq/{id}',[SettingsController::class,'editFaq'])->name('admin.faq.edit');
     Route::delete('/admin/faq/{id}',[SettingsController::class,'deleteFaq'])->name('admin.faq.delete');
     Route::post('/admin/privacy-policy',[SettingsController::class,'storePrivacyPolicy'])->name('admin.privacy-policy.store');
+
+    Route::get('/admin/contact-messages',[AdminContactMessageController::class,'index'])->name('admin.contact.messages');
 
     // Creator Management
     Route::get('/admin/creators',[UsersController::class,'getUsers'])->defaults('role','creator')->name('admin.creators.list');

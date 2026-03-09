@@ -81,7 +81,7 @@ class ProductController extends Controller
 
             // Get Request Data
             $destination = $request->get('destination', 684);
-            $perPage = $request->get('per_page', 10);
+            $perPage = $request->get('per_page', 50);
             $page = $request->get('page', 1);
             $startIndex = (($page - 1) * $perPage) + 1;
             $keywords = $request->get('keywords', null);

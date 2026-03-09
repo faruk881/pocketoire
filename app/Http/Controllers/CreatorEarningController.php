@@ -63,16 +63,15 @@ class CreatorEarningController extends Controller
 
             // (Viator products) Fetch sales data for the creator 
             $sales = Sale::query()
+                ->with('product.product_image')
                 ->where('sales.user_id', $creatorId)
                 ->whereIn('sales.status', ['confirmed', 'amended']) 
                 ->leftJoin('products', 'sales.product_id', '=', 'products.id')
                 ->leftJoin('product_clicks', 'products.id', '=', 'product_clicks.product_id')
-                ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
                 ->selectRaw('
                     sales.product_code,
                     products.id as product_id,
                     products.title,
-                    MIN(product_images.image) as main_image,
                     COUNT(sales.id) as total_conversions,
                     COUNT(DISTINCT product_clicks.id) as total_clicks,
                     SUM(sales.creator_commission) as total_earnings
@@ -89,7 +88,7 @@ class CreatorEarningController extends Controller
                 'id' => $row->product_id,               // NULL if product missing
                 'product_code' => $row->product_code,   // ALWAYS available
                 'title' => $row->title ?? 'Unlisted Product',
-                'main_image' => $row->main_image,
+                'main_image' => $row?->product?->product_image?->image,
                 'total_conversions' => (int) $row->total_conversions,
                 'total_clicks' => (int) $row->total_clicks,
                 'total_earnings' => (float) $row->total_earnings,
@@ -102,14 +101,13 @@ class CreatorEarningController extends Controller
 
             // (Expedia products) Fetch sales data for the creator 
             $expedia_sales = ExpediaSale::query()
+                ->with('product.product_image')
                 ->where('expedia_sales.user_id', $creatorId)
                 ->leftJoin('products', 'expedia_sales.product_id', '=', 'products.id')
-                ->leftJoin('product_images', 'products.id', '=', 'product_images.product_id')
                 ->leftJoin('product_clicks', 'products.id', '=', 'product_clicks.product_id')
                 ->selectRaw('
                     products.id as product_id,
                     products.title,
-                    MIN(product_images.image) as main_image,
                     COUNT(expedia_sales.id) as total_conversions,
                     COUNT(DISTINCT product_clicks.id) as total_clicks,
                     SUM(expedia_sales.creator_commission) as total_earnings
@@ -124,7 +122,7 @@ class CreatorEarningController extends Controller
             $expedia_products = $expedia_sales->map(fn ($row) => [
                 'id' => $row->product_id,               // NULL if product missing
                 'title' => $row->title ?? 'Unlisted Product',
-                'main_image' => $row->main_image,
+                'main_image' => $row?->product?->product_image?->image,
                 'total_conversions' => (int) $row->total_conversions,
                 'total_clicks' => (int) $row->total_clicks,
                 'total_earnings' => (float) $row->total_earnings,
