@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExpediaSale;
 use App\Models\Payout;
 use App\Models\Product;
 use App\Models\ProductClick;
@@ -70,12 +71,13 @@ class AdminDashboardStatsController extends Controller
             return round((($current - $previous) / $previous) * 100, 2);
         };
 
+        $viatorSales = Sale::whereIn('event_type', ['CONFIRMATION', 'AMENDMENT'])->count();
+        $expediaSales = ExpediaSale::count();
+
 
         $topProducts = Product::withCount('clicks')
             ->orderByDesc('clicks_count')
-            ->with('storefront:id,name')
-            ->with('user:id,name')
-            ->with('product_image')
+            ->with('storefront:id,name', 'user:id,name','product_image')
             ->limit(3)
             ->get();
 
@@ -127,6 +129,10 @@ class AdminDashboardStatsController extends Controller
                 'current_month' => $current_earnings,
                 'previous_month' => $previous_earnings,
                 'change_percent' => $percentChange($current_earnings, $previous_earnings),
+            ],
+            'sales_by_retailer' => [
+                'viator' => $viatorSales,
+                'expedia' => $expediaSales,
             ],
 
             'top_performing_products' => $topProducts,

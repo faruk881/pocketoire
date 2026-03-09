@@ -41,6 +41,12 @@ class Product extends Model
         return $this->hasMany(Sale::class);
     }
 
+    public function expedia_sales()
+    {
+        return $this->hasMany(ExpediaSale::class);
+    }
+
+
     public function savedByUsers()
     {
         return $this->belongsToMany(User::class, 'saved_products')
