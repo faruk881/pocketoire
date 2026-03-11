@@ -77,35 +77,56 @@ class AdminDashboardStatsController extends Controller
         $expediaSales = ExpediaSale::count();
 
 
-        // Clicks over time
-        // Date ranges
-// Date ranges
-$startOfWeek = Carbon::now()->startOfWeek();
-$endOfWeek   = Carbon::now()->endOfWeek();
+                // Define ranges
+        $startOfWeek = Carbon::now()->startOfWeek(); // Monday
+        $endOfWeek   = Carbon::now()->endOfWeek();   // Sunday
 
-$startOfMonth = Carbon::now()->startOfMonth();
-$endOfMonth   = Carbon::now()->endOfMonth();
+        $startOfMonth = Carbon::now()->startOfMonth();
+        $endOfMonth   = Carbon::now()->endOfMonth();
 
-// Query clicks grouped by product source
-$clickStats = \App\Models\ProductClick::select('products.source',
-        DB::raw("SUM(CASE WHEN product_clicks.created_at BETWEEN '{$startOfWeek}' AND '{$endOfWeek}' THEN 1 ELSE 0 END) as weekly_clicks"),
-        DB::raw("SUM(CASE WHEN product_clicks.created_at BETWEEN '{$startOfMonth}' AND '{$endOfMonth}' THEN 1 ELSE 0 END) as monthly_clicks")
-    )
-    ->join('products', 'product_clicks.product_id', '=', 'products.id')
-    ->groupBy('products.source')
-    ->get()
-    ->keyBy('source'); // key by source for easy access
+        // Get all clicks with products
+        $clicks = \App\Models\ProductClick::select('products.source', 'product_clicks.created_at')
+            ->join('products', 'product_clicks.product_id', '=', 'products.id')
+            ->whereBetween('product_clicks.created_at', [$startOfMonth, $endOfMonth])
+            ->get();
 
-// Build clicksOverTime array dynamically
-$clicksOverTime = [
-    'weekly'  => [],
-    'monthly' => []
-];
+        // Initialize arrays
+        $clicksOverTime = [
+            'weekly'  => [],
+            'monthly' => [],
+        ];
 
-foreach ($clickStats as $source => $stats) {
-    $clicksOverTime['weekly'][$source]  = $stats->weekly_clicks ?? 0;
-    $clicksOverTime['monthly'][$source] = $stats->monthly_clicks ?? 0;
-}
+        // Get unique sources
+        $sources = $clicks->pluck('source')->unique();
+
+        // Weekly data (7 days)
+        foreach ($sources as $source) {
+            for ($date = $startOfWeek->copy(); $date->lte($endOfWeek); $date->addDay()) {
+                $dayName = $date->format('l'); // Monday, Tuesday, etc.
+                $clicksOverTime['weekly'][$source][$dayName] = [
+                    'date' => $date->format('Y-m-d'),
+                    'clicks' => $clicks->where('source', $source)
+                                    ->where('created_at', '>=', $date->copy()->startOfDay())
+                                    ->where('created_at', '<=', $date->copy()->endOfDay())
+                                    ->count(),
+                ];
+            }
+        }
+
+        // Monthly data (30 days)
+        foreach ($sources as $source) {
+            for ($date = $startOfMonth->copy(); $date->lte($endOfMonth); $date->addDay()) {
+                $dayName = $date->format('l'); // Monday, Tuesday, etc.
+                $clicksOverTime['monthly'][$source][] = [  // Use numeric array to avoid overwriting
+                    'date' => $date->format('Y-m-d'),
+                    'day' => $dayName,
+                    'clicks' => $clicks->where('source', $source)
+                                    ->where('created_at', '>=', $date->copy()->startOfDay())
+                                    ->where('created_at', '<=', $date->copy()->endOfDay())
+                                    ->count(),
+                ];
+            }
+        }
 
 
 

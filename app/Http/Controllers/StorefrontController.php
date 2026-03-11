@@ -591,6 +591,7 @@ class StorefrontController extends Controller
             // Get Featured Products
             $featuredProducts = Product::where('status','approved')
             ->with('product_image')
+            ->with('storefront')
             ->latest()
             ->take(8)->get()
             ->transform(function ($product) {
@@ -636,6 +637,7 @@ class StorefrontController extends Controller
             $related = Product::where('storefront_id', $product->storefront_id)
                 ->where('id', '!=', $id)
                 ->with('product_image')
+                ->with('storefront')
                 ->limit(4)
                 ->get()
                 ->transform(function ($product) {
