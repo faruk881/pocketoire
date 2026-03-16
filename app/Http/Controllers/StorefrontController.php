@@ -86,10 +86,18 @@ class StorefrontController extends Controller
                 return apiError('Admin cannot create storefront.', 403);
             }
 
-            // One storefront per user
+
+            // Check for pending storefront per user
+            if ($user->storefront && $user->storefront->status === 'pending') {
+                return apiError('You already have a storefront. Please wait while admin approves it.', 403);
+            }
+
+            // Check if storefront exists
             if ($user->storefront) {
                 return apiError('You already have a storefront.', 403);
             }
+
+
 
             // Fetch Data
             $data = $request->validated();

@@ -18,7 +18,7 @@ class StorefrontActive
         $status = auth()->user()->storefront->status;
 
         if(in_array($status,['pending','rejected','banned'])) {
-            return apiError('The storefront is '.$status,403);
+            return apiError('The storefront is '.$status.', Please wait while admin approves it.',403);
         }
         
         return $next($request);

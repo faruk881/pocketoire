@@ -94,7 +94,7 @@ class ProcessStripePayout implements ShouldQueue
                 $stripePayout = StripePayout::create(
                     [
                         'amount'   => (int) round($payout->amount * 100),
-                        'currency' => strtolower($payout->currency),
+                        'currency' => strtolower($payout->currency),    
                     ],
                     [
                         'stripe_account'  => $creator->stripe_account_id,
