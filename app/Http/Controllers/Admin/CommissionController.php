@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\addcommissionToCreatorRequest;
+use App\Http\Requests\AddCommissionToCreatorRequest;
+
 use App\Http\Requests\CustomComissionRequest;
 use App\Http\Requests\GlobalComissionRequest;
 use App\Http\Requests\PayoutThresholdRequest;
@@ -26,7 +27,7 @@ use Stripe\Card;
 
 class CommissionController extends Controller
 {
-    public function addCreatorcommission(addcommissionToCreatorRequest $request)
+    public function addCreatorcommission(AddCommissionToCreatorRequest $request)
     {
         
         try {
