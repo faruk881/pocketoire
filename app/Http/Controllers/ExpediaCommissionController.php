@@ -33,6 +33,7 @@ class ExpediaCommissionController extends Controller
             $expediaProducts = Product::where('status','approved')
             ->where('source','expedia')
             ->with('product_image')
+            ->with('storefront')
             ->get();
             return apiSuccess('Expedia products retrieved successfully.', $expediaProducts);
         } catch (\Throwable $e) {
