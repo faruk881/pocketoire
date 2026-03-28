@@ -359,7 +359,7 @@ Password: root
 
 # 🚧 Project Status
 
-⚠️ **📦 Delivered (Pending Deployment)**
+📦 ** Delivered (Pending Deployment)**
 
 ---
 
