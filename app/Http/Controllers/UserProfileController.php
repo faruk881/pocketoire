@@ -20,6 +20,7 @@ class UserProfileController extends Controller
             // Get the user with saved products
             $user = User::where('id', auth()->id())
             ->select('id', 'name', 'email', 'profile_photo', 'account_type')
+            ->with('storefront')
             ->with(['savedProducts' => function($query) {
                 // Select product fields + the images relationship
                 $query->select('products.id', 'title', 'price')
@@ -29,7 +30,8 @@ class UserProfileController extends Controller
 
             // Prepare the return data
             $data = [
-                'user' => $user
+                'user' => $user,
+                // 'storefront_status' => $user->storefront?->status
             ];
 
             // Retuen message
